@@ -13,6 +13,7 @@ import {
 } from '../state/backgrounds';
 import { BACKGROUNDS, BACKGROUND_MAP, OFFICE_CATEGORY } from '../engine/backgrounds/catalog';
 import { IconBan, IconCamera, IconClose, IconUpload } from './icons';
+import { SHEET_LAYOUT } from './layout';
 
 function useMedia(query: string) {
   const [match, setMatch] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(query).matches);
@@ -60,7 +61,7 @@ export function BackgroundsPanel() {
   const { bgId, uploads, officeCustom, officeWindows, bgAnimate, expanded } = useApp(
     useShallow((s) => ({ bgId: s.bgId, uploads: s.bgUploads, officeCustom: s.officeCustom, officeWindows: s.officeWindows, bgAnimate: s.bgAnimate, expanded: s.sheetExpanded })),
   );
-  const compact = useMedia('(max-width: 760px)') && !expanded;
+  const compact = useMedia(SHEET_LAYOUT) && !expanded;
   const [drag, setDrag] = useState(false);
   const onDrop = (e: DragEvent) => {
     e.preventDefault();
