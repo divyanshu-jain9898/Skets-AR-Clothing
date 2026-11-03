@@ -62,6 +62,8 @@ export interface OutfitDef {
   occasion: 'Festive' | 'Wedding' | 'Everyday' | 'Ceremonial';
   /** Faith community the outfit is traditionally associated with, when there is one. */
   community?: string;
+  /** Traditions (regional cultures and faiths) the outfit belongs to; ids from TRADITIONS. */
+  traditions: string[];
   description: string;
   pieces: Partial<Record<SlotId, PieceRef>>;
 }

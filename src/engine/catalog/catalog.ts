@@ -96,6 +96,36 @@ const DRAPE_STYLE: StyleControl = {
   ],
 };
 
+// ---------- traditions (for the outfit picker) ----------
+export interface Tradition {
+  id: string;
+  label: string;
+  group: 'Regional' | 'Faith';
+}
+
+/** Cultures and faiths users can browse by; each has outfits for women and men. */
+export const TRADITIONS: Tradition[] = [
+  { id: 'assamese', label: 'Assamese', group: 'Regional' },
+  { id: 'bengali', label: 'Bengali', group: 'Regional' },
+  { id: 'gujarati', label: 'Gujarati', group: 'Regional' },
+  { id: 'kashmiri', label: 'Kashmiri', group: 'Regional' },
+  { id: 'malayali', label: 'Kerala (Malayali)', group: 'Regional' },
+  { id: 'awadhi', label: 'Lucknowi (Awadhi)', group: 'Regional' },
+  { id: 'maharashtrian', label: 'Maharashtrian', group: 'Regional' },
+  { id: 'punjabi', label: 'Punjabi', group: 'Regional' },
+  { id: 'rajasthani', label: 'Rajasthani', group: 'Regional' },
+  { id: 'sikkimese', label: 'Sikkimese', group: 'Regional' },
+  { id: 'tamil', label: 'Tamil', group: 'Regional' },
+  { id: 'hindu', label: 'Hindu', group: 'Faith' },
+  { id: 'muslim', label: 'Muslim', group: 'Faith' },
+  { id: 'sikh', label: 'Sikh', group: 'Faith' },
+  { id: 'christian', label: 'Christian', group: 'Faith' },
+  { id: 'parsi', label: 'Parsi', group: 'Faith' },
+  { id: 'buddhist', label: 'Buddhist', group: 'Faith' },
+];
+
+export const TRADITION_MAP = new Map(TRADITIONS.map((t) => [t.id, t]));
+
 // ---------- pieces ----------
 export const PIECES: PieceDef[] = [
   // ===== Men: tops
@@ -189,6 +219,36 @@ export const PIECES: PieceDef[] = [
     fabric: fab('#5a1830', '#c99a1c', '#f3ead2', ZARI_GOLD, { type: 'brocade', pattern: 'brocade', border: 'none' }),
     controls: [LENGTH_TOP, FIT],
   },
+  {
+    id: 'kediyu',
+    name: 'Kediyu',
+    slot: 'top',
+    gender: 'men',
+    kind: 'torso',
+    params: { hem: H.HIP + 0.16, ease: 0.07, flare: 0.3, flareStart: H.WAIST, waistFit: 0.2, neckline: 'round', neckDepth: 0.14, opening: 'none', sleeve: 1, sleeveEase: 0.04, pleats: 24, pleatDepth: 0.025, pleatStart: H.WAIST, hemBorder: 0.09, cuffBorder: 0.07, sway: 0.8 },
+    fabric: fab('#f4f1ea', '#c2185b', '#1f3b8f', ZARI_SILVER, { type: 'cotton', pattern: 'plain', border: 'mirror' }),
+    controls: [SLEEVES, FLARE],
+  },
+  {
+    id: 'pheran-m',
+    name: 'Pheran',
+    slot: 'top',
+    gender: 'men',
+    kind: 'torso',
+    params: { hem: H.CALF - 0.02, ease: 0.15, flare: 0.16, neckline: 'round', neckDepth: 0.16, opening: 'placket', placketLen: 0.35, buttons: 0, sleeve: 1, sleeveEase: 0.1, cuffBorder: 0.08, neckBorder: 0.04, hemBorder: 0.05, slits: H.KNEE },
+    fabric: fab('#5a4a3e', '#6a584a', '#8a6a3a', ZARI_GOLD, { type: 'khadi', pattern: 'plain', border: 'simple' }),
+    controls: [LENGTH_TOP, FIT],
+  },
+  {
+    id: 'jubba',
+    name: 'Jubba',
+    slot: 'top',
+    gender: 'men',
+    kind: 'torso',
+    params: { hem: H.HIP + 0.3, ease: 0.09, flare: 0.06, neckline: 'round', neckDepth: 0.12, opening: 'placket', placketLen: 0.5, buttons: 3, buttonStyle: 'gold', sleeve: 0.9, hemBorder: 0, cuffBorder: 0, slits: H.HIP + 0.12 },
+    fabric: fab('#fbf8f1', '#f1ece0', '#f1ece0', ZARI_GOLD, { type: 'cotton', pattern: 'plain', border: 'none' }),
+    controls: [SLEEVES, FIT],
+  },
   // ===== Men: layers
   {
     id: 'nehru-jacket',
@@ -214,6 +274,16 @@ export const PIECES: PieceDef[] = [
     kind: 'skirt',
     params: { top: H.WAIST + 0.18, hem: H.ANKLE + 0.05, ease: 0.05, flare: 0.12, pleats: 5, pleatDepth: 0.01, waistBand: 0, hemBorder: 0.14, wrapEdge: 0.45, sway: 0.5 },
     fabric: fab('#f8f4ea', '#efe8d8', '#c9a227', ZARI_GOLD, { type: 'cotton', border: 'kasavu' }),
+    controls: [],
+  },
+  {
+    id: 'tehmat',
+    name: 'Tehmat (lacha)',
+    slot: 'bottom',
+    gender: 'men',
+    kind: 'skirt',
+    params: { top: H.WAIST + 0.16, hem: H.ANKLE + 0.04, ease: 0.06, flare: 0.35, pleats: 14, pleatDepth: 0.035, waistBand: 0, hemBorder: 0.07, wrapEdge: 0.45, sway: 0.9 },
+    fabric: fab('#1f3b8f', '#d4af37', '#d4af37', ZARI_GOLD, { type: 'satin', pattern: 'plain', border: 'gota' }),
     controls: [],
   },
   // ===== Men: drapes / head / jewellery
@@ -315,6 +385,16 @@ export const PIECES: PieceDef[] = [
     params: { hem: H.HIP + 0.05, ease: 0.05, flare: 0.04, waistFit: 0.3, bust: 1, neckline: 'round', neckDepth: 0.12, opening: 'none', sleeve: 1, sleeveEase: 0.05, hemBorder: 0, cuffBorder: 0 },
     fabric: fab('#f3b8c5', '#f7d3dc', '#f3b8c5', ZARI_GOLD, { type: 'satin', pattern: 'plain', border: 'none' }),
     controls: [SLEEVES],
+  },
+  {
+    id: 'pheran-w',
+    name: 'Pheran with tilla',
+    slot: 'top',
+    gender: 'women',
+    kind: 'torso',
+    params: { hem: H.CALF, ease: 0.12, flare: 0.2, waistFit: 0.1, bust: 1, neckline: 'round', neckDepth: 0.18, opening: 'none', sleeve: 1, sleeveEase: 0.09, cuffBorder: 0.13, neckBorder: 0.07, hemBorder: 0.09, slits: H.KNEE, sway: 0.6 },
+    fabric: fab('#6a1530', '#7a2040', '#6a1530', ZARI_GOLD, { type: 'velvet', pattern: 'plain', border: 'vine' }),
+    controls: [LENGTH_TOP, FIT],
   },
   // ===== Women: layers
   {
@@ -430,6 +510,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Lucknow',
     occasion: 'Everyday',
+    traditions: ['awadhi'],
     description: 'Breathable cotton kurta with tone-on-tone Lucknowi chikan embroidery, mandarin collar and pearl buttons.',
     pieces: { top: { piece: 'kurta-classic' }, bottom: { piece: 'pyjama' } },
   },
@@ -439,6 +520,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Pan-India',
     occasion: 'Festive',
+    traditions: [],
     description: 'Silk kurta layered with a brocade Nehru (bandi) jacket and slim churidar - a festive classic.',
     pieces: {
       top: { piece: 'kurta-classic', type: 'silk', pattern: 'plain', colors: { base: '#efe3c8', accent: '#e2d3b0', border: '#d4c09a' } },
@@ -452,6 +534,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Hyderabad',
     occasion: 'Wedding',
+    traditions: ['muslim'],
     description: 'Ivory brocade sherwani with zari vine borders, gold buttons, velvet stole, safa with kalgi and a pearl mala.',
     pieces: {
       top: { piece: 'sherwani' },
@@ -467,6 +550,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Rajasthan',
     occasion: 'Festive',
+    traditions: ['rajasthani'],
     description: 'Midnight velvet closed-neck coat with gold buttons, jodhpuri breeches and a leheriya safa.',
     pieces: { top: { piece: 'bandhgala' }, bottom: { piece: 'jodhpuri' }, head: { piece: 'safa' } },
   },
@@ -476,6 +560,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Bengal',
     occasion: 'Ceremonial',
+    traditions: ['bengali', 'hindu'],
     description: 'Saffron silk short kurta, pleated cotton dhoti with a red border and a kasavu angavastram.',
     pieces: { top: { piece: 'kurta-short' }, bottom: { piece: 'dhoti' }, drape: { piece: 'angavastram' } },
   },
@@ -485,6 +570,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Kerala & Tamil Nadu',
     occasion: 'Ceremonial',
+    traditions: ['malayali', 'tamil', 'hindu'],
     description: 'Crisp white shirt, veshti with a broad gold kasavu border and a matching angavastram.',
     pieces: { top: { piece: 'shirt-half' }, bottom: { piece: 'veshti' }, drape: { piece: 'angavastram' } },
   },
@@ -494,6 +580,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Punjab & Peshawar',
     occasion: 'Everyday',
+    traditions: ['punjabi', 'muslim'],
     description: 'Relaxed linen pathani kurta with a curved hem and roomy salwar in charcoal.',
     pieces: { top: { piece: 'pathani' }, bottom: { piece: 'salwar-m' } },
   },
@@ -504,6 +591,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Kerala',
     occasion: 'Festive',
+    traditions: ['malayali', 'hindu'],
     description: 'Cream silk full-sleeve shirt, a kasavu mundu with a gold border and a kasavu neriyathu over one shoulder - the Onam and Vishu look.',
     pieces: {
       top: { piece: 'shirt-full' },
@@ -517,6 +605,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'men',
     region: 'Rajasthan',
     occasion: 'Wedding',
+    traditions: ['rajasthani'],
     description: 'Peach zari-jaal brocade sherwani with gold buttons, white churidar, a rani-and-lavender leheriya safa with a kalgi plume and a pearl mala.',
     pieces: {
       top: { piece: 'sherwani', type: 'brocade', pattern: 'jaal', border: 'none', colors: { base: '#eea48c', accent: '#f6cdb6', border: '#eea48c', zari: '#d9b45a' }, params: { hemBorder: 0, cuffBorder: 0 } },
@@ -533,6 +622,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Punjab',
     community: 'Sikh',
     occasion: 'Festive',
+    traditions: ['sikh', 'punjabi'],
     description: 'Crisp white kurta pyjama with a neatly tied kesari (saffron) dastar, as worn for Gurpurab and Baisakhi.',
     pieces: {
       top: { piece: 'kurta-classic', pattern: 'plain', colors: { base: '#f8f6f0', accent: '#eeeae0', border: '#eeeae0' } },
@@ -547,6 +637,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Lucknow & Hyderabad',
     community: 'Muslim',
     occasion: 'Festive',
+    traditions: ['muslim', 'awadhi'],
     description: 'Long white chikankari kurta and churidar under a dove-grey sadri, with a white embroidered taqiyah cap - classic Eid attire.',
     pieces: {
       top: { piece: 'kurta-classic', params: { hem: H.KNEE + 0.12 } },
@@ -562,6 +653,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Mumbai & Gujarat',
     community: 'Parsi',
     occasion: 'Ceremonial',
+    traditions: ['parsi'],
     description: 'The white dagli, a crossover coat fastened at the side, with white pyjama - worn by Parsi men for the Navjote and weddings.',
     pieces: {
       top: { piece: 'dagli' },
@@ -575,10 +667,97 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Sikkim',
     community: 'Buddhist',
     occasion: 'Festive',
+    traditions: ['buddhist', 'sikkimese'],
     description: 'Calf-length brocade bakhu with a wrap collar, a kera sash at the waist and the honju shirt cuffs folded back, worn for Losar.',
     pieces: {
       top: { piece: 'bakhu-m' },
       bottom: { piece: 'pyjama', colors: { base: '#2c2b30', accent: '#242328', border: '#242328' } },
+    },
+  },
+  // ----- Men: more traditions
+  {
+    id: 'kediyu',
+    name: 'Gujarati Kediyu & Chorno',
+    gender: 'men',
+    region: 'Gujarat',
+    occasion: 'Festive',
+    traditions: ['gujarati'],
+    description: 'The Garba outfit: a flared white kediyu with mirror-work borders, red chorno trousers and a bandhani pagdi.',
+    pieces: {
+      top: { piece: 'kediyu' },
+      bottom: { piece: 'jodhpuri', type: 'cotton', colors: { base: '#a3122a', accent: '#8a0f22', border: '#8a0f22' } },
+      head: { piece: 'safa', type: 'cotton', pattern: 'bandhani', colors: { base: '#c8102e', accent: '#f6c518', border: '#c8102e' }, params: { style: 'pagdi', kalgi: false, tail: false } },
+    },
+  },
+  {
+    id: 'marathi-pheta',
+    name: 'Maharashtrian Dhotar, Kurta & Pheta',
+    gender: 'men',
+    region: 'Maharashtra',
+    occasion: 'Wedding',
+    traditions: ['maharashtrian', 'hindu'],
+    description: 'Cream kurta, white dhotar with a gold border, a saffron Puneri pheta with its tail and an uparna over the shoulders.',
+    pieces: {
+      top: { piece: 'kurta-classic', type: 'silk', pattern: 'plain', colors: { base: '#f3e8cf', accent: '#e8dcbc', border: '#e8dcbc' } },
+      bottom: { piece: 'dhoti', colors: { base: '#f8f4ea', accent: '#efe8d8', border: '#c9a227' }, border: 'kasavu' },
+      drape: { piece: 'angavastram', colors: { base: '#f8f4ea', accent: '#efe8d8', border: '#b3121f' }, border: 'simple' },
+      head: { piece: 'safa', type: 'silk', pattern: 'plain', colors: { base: '#f28c28', accent: '#e07a18', border: '#f28c28' }, params: { style: 'safa', kalgi: false, tail: true } },
+    },
+  },
+  {
+    id: 'bhangra',
+    name: 'Punjabi Kurta & Tehmat',
+    gender: 'men',
+    region: 'Punjab',
+    occasion: 'Festive',
+    traditions: ['punjabi'],
+    description: 'Bhangra and Baisakhi wear: a satin kurta under a black velvet waistcoat, a pleated royal-blue tehmat with gota and a yellow pagg with a turla.',
+    pieces: {
+      top: { piece: 'kurta-classic', type: 'satin', pattern: 'plain', colors: { base: '#f6f1e6', accent: '#ece4d2', border: '#ece4d2' }, params: { hem: H.HIP + 0.22, slits: H.HIP + 0.05 } },
+      layer: { piece: 'nehru-jacket', type: 'velvet', pattern: 'plain', colors: { base: '#18161c', accent: '#2a2630', border: '#18161c' } },
+      bottom: { piece: 'tehmat' },
+      head: { piece: 'safa', type: 'silk', pattern: 'plain', colors: { base: '#f2c12e', accent: '#e0a926', border: '#f2c12e' }, params: { style: 'pagdi', kalgi: true, tail: false } },
+    },
+  },
+  {
+    id: 'kashmiri-pheran-m',
+    name: 'Kashmiri Pheran',
+    gender: 'men',
+    region: 'Kashmir',
+    occasion: 'Everyday',
+    traditions: ['kashmiri'],
+    description: 'The long woollen pheran with roomy sleeves and a little tilla at the neck and cuffs, over a white pyjama.',
+    pieces: {
+      top: { piece: 'pheran-m' },
+      bottom: { piece: 'pyjama' },
+    },
+  },
+  {
+    id: 'jubba-mundu',
+    name: 'Jubba & Mundu',
+    gender: 'men',
+    region: 'Kerala',
+    community: 'Syrian Christian',
+    occasion: 'Ceremonial',
+    traditions: ['malayali', 'christian'],
+    description: "A white collarless jubba with gold buttons over a kasavu mundu - the traditional dress of Kerala's Syrian Christian men.",
+    pieces: {
+      top: { piece: 'jubba' },
+      bottom: { piece: 'veshti', colors: { base: '#fbf8f1', accent: '#f1ece0', border: '#c9a227' }, params: { hemBorder: 0.06 } },
+    },
+  },
+  {
+    id: 'assamese-dhoti',
+    name: 'Assamese Dhoti, Kurta & Gamosa',
+    gender: 'men',
+    region: 'Assam',
+    occasion: 'Festive',
+    traditions: ['assamese'],
+    description: 'Bihu attire: a golden muga silk kurta, a white dhoti and the red-bordered gamosa around the neck.',
+    pieces: {
+      top: { piece: 'kurta-short', type: 'silk', pattern: 'plain', colors: { base: '#d9b56b', accent: '#cfa85a', border: '#b3121f' } },
+      bottom: { piece: 'dhoti', colors: { base: '#f8f4ea', accent: '#efe8d8', border: '#b3121f' } },
+      drape: { piece: 'angavastram', colors: { base: '#fbf8f1', accent: '#f1ece0', border: '#b3121f' }, border: 'simple' },
     },
   },
   // ----- Women
@@ -588,6 +767,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Varanasi',
     occasion: 'Wedding',
+    traditions: ['hindu'],
     description: 'Crimson brocade silk with a gold temple border, draped Nivi style, with a zari blouse, haar and jhumkas.',
     pieces: {
       top: { piece: 'blouse' },
@@ -601,6 +781,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Kerala',
     occasion: 'Festive',
+    traditions: ['malayali', 'hindu'],
     description: 'Off-white handloom cotton with a broad gold kasavu border, paired with a gold blouse and temple jewellery.',
     pieces: {
       top: { piece: 'blouse', type: 'silk', pattern: 'plain', colors: { base: '#c9a227', accent: '#c9a227', border: '#9c7a17' } },
@@ -614,6 +795,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'North India',
     occasion: 'Wedding',
+    traditions: [],
     description: 'Velvet lehenga with 24 kalis and double zari borders, sweetheart choli, sheer gota dupatta and bridal jewellery.',
     pieces: {
       top: { piece: 'choli' },
@@ -628,6 +810,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Gujarat',
     occasion: 'Festive',
+    traditions: ['gujarati'],
     description: 'Garba-ready tie-dye bandhani skirt with mirror-work border, contrast choli and a leheriya dupatta.',
     pieces: {
       top: { piece: 'choli', type: 'cotton', pattern: 'plain', border: 'mirror', colors: { base: '#1f3b8f', accent: '#f2c12e', border: '#1f3b8f' } },
@@ -642,6 +825,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Lucknow',
     occasion: 'Festive',
+    traditions: ['awadhi', 'muslim'],
     description: 'Floor-length peacock-blue anarkali with 28 kalis, zari waistband and hem, churidar and a sheer dupatta.',
     pieces: {
       top: { piece: 'anarkali' },
@@ -656,6 +840,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Punjab',
     occasion: 'Everyday',
+    traditions: ['punjabi'],
     description: 'Haldi-yellow kameez with rani-pink booti, roomy salwar and a phulkari-style dupatta.',
     pieces: {
       top: { piece: 'kameez' },
@@ -669,6 +854,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Jaipur',
     occasion: 'Everyday',
+    traditions: ['rajasthani'],
     description: 'Sanganeri block-printed A-line kurti with indigo palazzo pants.',
     pieces: { top: { piece: 'kurti' }, bottom: { piece: 'palazzo' } },
   },
@@ -678,6 +864,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Lucknow',
     occasion: 'Festive',
+    traditions: ['awadhi', 'muslim'],
     description: 'Mint chikankari short kurti with flared gota-trimmed sharara and a matching dupatta.',
     pieces: {
       top: { piece: 'kurti-short' },
@@ -691,6 +878,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Andhra & Tamil Nadu',
     occasion: 'Ceremonial',
+    traditions: ['tamil', 'hindu'],
     description: 'Silk pattu langa with a wide temple border, contrast voni draped over the shoulder and temple jewellery.',
     pieces: {
       top: { piece: 'blouse', colors: { base: '#c2185b', accent: '#d4af37', border: '#0e6b4f' }, pattern: 'plain' },
@@ -706,6 +894,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Kerala',
     occasion: 'Festive',
+    traditions: ['malayali', 'hindu'],
     description: 'Cream kasavu skirt and half-saree with gold borders and a white blouse with gold cuffs - the Onam and Vishu look for girls and women.',
     pieces: {
       top: { piece: 'blouse', type: 'cotton', pattern: 'plain', border: 'kasavu', colors: { base: '#faf5e8', accent: '#f1ead6', border: '#c9a227' }, params: { sleeve: 0.4, cuffBorder: 0.08, hemBorder: 0 } },
@@ -720,6 +909,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Rajasthan',
     occasion: 'Festive',
+    traditions: ['rajasthani'],
     description: 'A twirling kalidar ghagra in haldi, neel and rani panels with a bandhani and gota hem, a yellow choli, a bandhani odhni and silver jewellery.',
     pieces: {
       top: { piece: 'choli', type: 'cotton', pattern: 'plain', border: 'gota', colors: { base: '#f6c518', accent: '#f6c518', border: '#c8102e', zari: '#c3c7cf' }, params: { sleeve: 0.4, neckline: 'round' } },
@@ -734,6 +924,7 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Maharashtra',
     occasion: 'Wedding',
+    traditions: ['maharashtrian', 'hindu'],
     description: 'Nine-yard emerald silk draped kashta style, like a dhoti, with gold butis, a maroon paithani-style border and pallu, a maroon blouse and gold jewellery.',
     pieces: {
       top: { piece: 'blouse', pattern: 'booti', colors: { base: '#7a1020', accent: '#d4af37', border: '#d4af37' }, params: { sleeve: 0.6 } },
@@ -750,6 +941,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Punjab',
     community: 'Sikh',
     occasion: 'Festive',
+    traditions: ['sikh', 'punjabi'],
     description: 'Ivory kameez with a gulabi Patiala salwar and a deep red phulkari chunni embroidered in golden silk floss.',
     pieces: {
       top: { piece: 'kameez', pattern: 'plain', border: 'simple', colors: { base: '#f7f1e3', accent: '#efe5cc', border: '#d6246e' } },
@@ -765,6 +957,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Lucknow',
     community: 'Muslim',
     occasion: 'Wedding',
+    traditions: ['awadhi', 'muslim'],
     description: 'Short kurti and a gharara that flares below a gota band at the knee, with a sheer dupatta - the traditional Nikah and Eid outfit of Awadh.',
     pieces: {
       top: { piece: 'kurti-short', type: 'silk', pattern: 'booti', border: 'gota', colors: { base: '#2f7f7a', accent: '#d4af37', border: '#1f5f5b' } },
@@ -780,6 +973,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Kerala',
     community: 'Syrian Christian',
     occasion: 'Ceremonial',
+    traditions: ['malayali', 'christian'],
     description: "The traditional dress of Kerala's Syrian Christian women: a white chatta blouse, a pleated white mundu and a gold-bordered kavani over the shoulder.",
     pieces: {
       top: { piece: 'chatta' },
@@ -795,6 +989,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Mumbai & Gujarat',
     community: 'Parsi',
     occasion: 'Wedding',
+    traditions: ['parsi'],
     description: 'Hand-embroidered gara in deep aubergine with pale silk-thread florals, draped Parsi style over the right shoulder, with a pearl set.',
     pieces: {
       top: { piece: 'blouse', type: 'silk', pattern: 'chikankari', border: 'simple', colors: { base: '#3a0f2a', accent: '#f3d9e6', border: '#3a0f2a', zari: '#c3c7cf' }, params: { sleeve: 0.6 } },
@@ -809,6 +1004,7 @@ export const OUTFITS: OutfitDef[] = [
     region: 'Sikkim',
     community: 'Buddhist',
     occasion: 'Festive',
+    traditions: ['buddhist', 'sikkimese'],
     description: 'A sleeveless maroon brocade bakhu belted over a pink silk honju blouse - worn for Losar and other Buddhist festivals.',
     pieces: {
       top: { piece: 'honju' },
@@ -822,12 +1018,56 @@ export const OUTFITS: OutfitDef[] = [
     gender: 'women',
     region: 'Assam',
     occasion: 'Festive',
+    traditions: ['assamese'],
     description: 'Golden muga silk mekhela and chador with red woven motifs and a red blouse, worn for Bihu and weddings.',
     pieces: {
       top: { piece: 'blouse', pattern: 'plain', colors: { base: '#a3122a', accent: '#d4af37', border: '#d4af37' }, params: { sleeve: 0.4 } },
       bottom: { piece: 'mekhela' },
       drape: { piece: 'chador' },
       jewelry: { piece: 'bridal-set', params: { necklace: 'choker', earrings: true, tikka: false, metal: 'gold', stone: 'ruby' } },
+    },
+  },
+  // ----- Women: more traditions
+  {
+    id: 'lal-paar',
+    name: 'Bengali Lal Paar Saree',
+    gender: 'women',
+    region: 'Bengal',
+    occasion: 'Festive',
+    traditions: ['bengali', 'hindu'],
+    description: 'The white saree with a broad red border (lal paar) worn for Durga Puja and Bijoya, with a red blouse and gold jewellery.',
+    pieces: {
+      top: { piece: 'blouse', pattern: 'plain', colors: { base: '#b3121f', accent: '#d4af37', border: '#d4af37' }, params: { sleeve: 0.4 } },
+      bottom: { piece: 'saree', type: 'silk', pattern: 'plain', border: 'simple', colors: { base: '#f8f3e6', accent: '#b3121f', border: '#b3121f' } },
+      jewelry: { piece: 'bridal-set', params: { necklace: 'haar', earrings: true, tikka: false, metal: 'gold', stone: 'ruby' } },
+    },
+  },
+  {
+    id: 'kanjeevaram',
+    name: 'Kanjeevaram Silk Saree',
+    gender: 'women',
+    region: 'Tamil Nadu',
+    occasion: 'Wedding',
+    traditions: ['tamil', 'hindu'],
+    description: 'Rani-pink Kanchipuram silk with zari butis and a contrast green temple border, a purple blouse and temple jewellery with a nethi chutti.',
+    pieces: {
+      top: { piece: 'blouse', pattern: 'plain', colors: { base: '#4b1a6e', accent: '#d4af37', border: '#d4af37' }, params: { sleeve: 0.6 } },
+      bottom: { piece: 'saree', type: 'silk', pattern: 'booti', border: 'temple', colors: { base: '#b0124f', accent: '#d4af37', border: '#1f6b3a' } },
+      jewelry: { piece: 'bridal-set', params: { necklace: 'haar', earrings: true, tikka: true, metal: 'antiqueGold', stone: 'ruby' } },
+    },
+  },
+  {
+    id: 'kashmiri-pheran-w',
+    name: 'Kashmiri Pheran with Tilla',
+    gender: 'women',
+    region: 'Kashmir',
+    occasion: 'Festive',
+    traditions: ['kashmiri'],
+    description: 'A velvet pheran with gold tilla embroidery at the neck, cuffs and hem, worn over a churidar for weddings and Eid.',
+    pieces: {
+      top: { piece: 'pheran-w' },
+      bottom: { piece: 'churidar-w', colors: { base: '#f4ecd8', accent: '#e8dcc0', border: '#e8dcc0' } },
+      jewelry: { piece: 'bridal-set', params: { necklace: 'choker', earrings: true, tikka: false, metal: 'gold', stone: 'emerald' } },
     },
   },
 ];

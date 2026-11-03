@@ -1654,3 +1654,109 @@ button {
     display: none;
   }
 }
+
+/* tradition picker */
+.lib-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.trad {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 5px 10px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(242, 179, 61, 0.45);
+  background: rgba(242, 179, 61, 0.08);
+  color: var(--kora);
+  cursor: pointer;
+  max-width: 60%;
+}
+.trad[data-active='true'] {
+  background: var(--haldi);
+  border-color: var(--haldi);
+  color: var(--haldi-ink);
+}
+.trad .trad-k {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.trad .trad-v {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trad .trad-caret {
+  flex: none;
+}
+.trad select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* stops iOS zooming in on focus */
+}
+.trad:focus-within {
+  outline: 2px solid var(--haldi);
+  outline-offset: 2px;
+}
+.text-btn.inline {
+  padding: 0;
+  font-size: inherit;
+}
+/* the card version only shows in the collapsed bottom sheet on phones */
+.trad-card-wrap {
+  display: none;
+}
+@media (max-width: 760px) {
+  .panel:not(.expanded) .trad-card-wrap {
+    display: block;
+    flex: none;
+    width: 84px;
+  }
+  .trad.tile {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    width: 84px;
+    max-width: none;
+    height: 96px;
+    border-radius: 9px;
+    padding: 8px;
+  }
+  .trad.tile .trad-v {
+    font-size: 13px;
+    white-space: normal;
+    line-height: 1.15;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .trad.tile .trad-caret {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+  }
+  .panel:not(.expanded) .lib-row .trad {
+    display: none;
+  }
+  .lib-row .trad {
+    max-width: 58%;
+  }
+}
+@media (max-width: 760px) {
+  .panel:not(.expanded) .lib-row {
+    display: none;
+  }
+}

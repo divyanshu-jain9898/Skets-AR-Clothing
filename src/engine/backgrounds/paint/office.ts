@@ -34,6 +34,7 @@ import type { Painterly } from './painterly';
 import type { NRect } from './scene';
 import type { SkyMask } from './render';
 import { drawOfficeBase } from './officeBase';
+import { detectPhotoSky, paintExterior } from './exterior';
 
 const SKY_RES = 160;
 
@@ -56,9 +57,13 @@ export interface OfficePainting {
  *  5. Oil-on-canvas pass, then the light sources and glows on top.
  *
  * Without a photo it paints a modern office from scratch and runs it through
- * exactly the same conversion.
+ * exactly the same conversion. Outdoor photos (a building or campus under
+ * open sky) go through `paintExterior` instead.
  */
 export function paintOffice(image: ImageBitmap | null, w: number, h: number, painter: Painterly | null, rng: Rng, opts: { windows?: boolean } = {}): OfficePainting {
+  // an outdoor photo (a building with open sky) gets the exterior treatment
+  const outdoor = image ? detectPhotoSky(image) : null;
+  if (image && outdoor) return paintExterior(image, w, h, painter, rng, outdoor);
   const c = makeCanvas(w, h);
   const g = ctx2d(c);
   if (image) drawCover(g, image, w, h);

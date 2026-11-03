@@ -17,7 +17,7 @@ export const OFFICE_CATEGORY = 'My Office – Diwali Edition';
 export const BACKGROUNDS: BackgroundDef[] = [
   { id: 'camera', name: 'Camera', category: 'basic', kind: 'camera', blurb: 'Your real surroundings, as the camera sees them' },
   { id: 'none', name: 'None', category: 'basic', kind: 'none', blurb: 'Background removed, plain studio backdrop' },
-  { id: 'office', name: 'My Office – Diwali Edition', category: 'office', kind: 'office', blurb: 'The office as a canvas painting, dressed for Diwali with diyas, lanterns and fireworks' },
+  { id: 'office', name: 'My Office – Diwali Edition', category: 'office', kind: 'office', blurb: 'The SKETS campus as a canvas painting: lights on every roofline, diyas, firecrackers and a sky full of fireworks' },
   { id: 'crackers', name: 'Diwali Crackers', category: 'diwali', kind: 'scene', scene: 'crackers', blurb: 'Fireworks and crackers over the old town' },
   { id: 'diyas', name: 'Diya Decorations', category: 'diwali', kind: 'scene', scene: 'diyas', blurb: 'Earthen diyas glowing in festive rows' },
   { id: 'house', name: 'Illuminated House', category: 'diwali', kind: 'scene', scene: 'house', blurb: 'A home lit with lights, lanterns and diyas' },
