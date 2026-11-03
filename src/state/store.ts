@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Engine } from '../engine/Engine';
-import { OUTFITS, OUTFIT_MAP, PIECE_MAP, selectionFromOutfit, slotStateFromRef } from '../engine/catalog/catalog';
+import { OUTFITS, OUTFIT_MAP, PIECE_MAP, TRADITION_MAP, selectionFromOutfit, slotStateFromRef } from '../engine/catalog/catalog';
 import type { OutfitSelection, SlotId, SlotState } from '../engine/catalog/types';
 import type { EngineStats, Gender, QualityLevel, SourceMode, TrackingStatus } from '../engine/core/types';
 import type { MannequinPose } from '../engine/tracking/SyntheticPose';
@@ -32,7 +32,7 @@ export const getEngine = () => engineRef;
 const isMobile = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 760);
 
 const PREFS_KEY = 'vastra-prefs-v1';
-function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean; bgId: string; bgAnimate: boolean; officeWindows: boolean; accessories: boolean }> {
+function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean; bgId: string; bgAnimate: boolean; officeWindows: boolean; accessories: boolean; tradition: string }> {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
   } catch {
@@ -63,6 +63,11 @@ function withoutAccessories(sel: OutfitSelection): OutfitSelection {
   }
   return { ...sel, slots };
 }
+/** Outfits shown in the library for a collection, occasion and tradition. */
+export function visibleOutfits(gender: Gender, occasion: Occasion, tradition: string) {
+  return OUTFITS.filter((o) => o.gender === gender && (occasion === 'All' || o.occasion === occasion) && (tradition === 'all' || o.traditions.includes(tradition)));
+}
+
 const outfitSelection = (o: Parameters<typeof selectionFromOutfit>[0], accessories: boolean) => {
   const sel = selectionFromOutfit(o);
   return accessories ? sel : withoutAccessories(sel);
@@ -71,7 +76,8 @@ const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(p
 
 export type PanelTab = 'outfits' | 'customise' | 'backgrounds';
 const initialGender: Gender = prefs.gender ?? 'women';
-const initialOutfit = OUTFITS.find((o) => o.gender === initialGender)!;
+const initialTradition = prefs.tradition && TRADITION_MAP.has(prefs.tradition) ? prefs.tradition : 'all';
+const initialOutfit = visibleOutfits(initialGender, 'All', initialTradition)[0] ?? OUTFITS.find((o) => o.gender === initialGender)!;
 
 export interface AppState {
   mode: SourceMode;
@@ -82,6 +88,8 @@ export interface AppState {
   stats: EngineStats;
   gender: Gender;
   occasion: Occasion;
+  /** Tradition filter: 'all' or an id from TRADITIONS (Bengali, Sikh, ...). */
+  tradition: string;
   outfitId: string | null;
   selection: OutfitSelection;
   activeSlot: SlotId;
@@ -131,6 +139,7 @@ export interface AppState {
   setStats: (s: EngineStats) => void;
   setGender: (g: Gender) => void;
   setOccasion: (o: Occasion) => void;
+  setTradition: (t: string) => void;
   chooseOutfit: (id: string) => void;
   cycleOutfit: (dir: 1 | -1) => void;
   setActiveSlot: (s: SlotId) => void;
@@ -178,6 +187,7 @@ export function persist(s: AppState) {
     bgAnimate: s.bgAnimate,
     officeWindows: s.officeWindows,
     accessories: s.accessories,
+    tradition: s.tradition,
   });
 }
 
@@ -190,6 +200,7 @@ export const useApp = create<AppState>((set, get) => ({
   stats: { fps: 0, inferMs: 0, renderMs: 0, segMs: 0, delegate: '-' },
   gender: initialGender,
   occasion: 'All',
+  tradition: initialTradition,
   outfitId: initialOutfit.id,
   selection: outfitSelection(initialOutfit, prefs.accessories ?? true),
   activeSlot: 'top',
@@ -231,13 +242,27 @@ export const useApp = create<AppState>((set, get) => ({
   setStats: (stats) => set({ stats }),
   setGender: (gender) => {
     if (gender === get().gender) return;
-    const first = OUTFITS.find((o) => o.gender === gender && (get().occasion === 'All' || o.occasion === get().occasion)) ?? OUTFITS.find((o) => o.gender === gender)!;
+    const { occasion, tradition } = get();
+    const first = visibleOutfits(gender, occasion, tradition)[0] ?? visibleOutfits(gender, 'All', tradition)[0] ?? OUTFITS.find((o) => o.gender === gender)!;
+    if (first.occasion !== occasion && occasion !== 'All') set({ occasion: 'All' });
     const selection = outfitSelection(first, get().accessories);
     set({ gender, outfitId: first.id, selection, activeSlot: 'top' });
     pushSelection(selection);
     persist(get());
   },
   setOccasion: (occasion) => set({ occasion }),
+  setTradition: (tradition) => {
+    set({ tradition });
+    const { gender, outfitId } = get();
+    let list = visibleOutfits(gender, get().occasion, tradition);
+    if (!list.length) {
+      set({ occasion: 'All' });
+      list = visibleOutfits(gender, 'All', tradition);
+    }
+    // put on the first look of that tradition so the choice shows straight away
+    if (list.length && !list.some((o) => o.id === outfitId)) get().chooseOutfit(list[0].id);
+    persist(get());
+  },
   chooseOutfit: (id) => {
     const o = OUTFIT_MAP.get(id);
     if (!o) return;
@@ -246,8 +271,8 @@ export const useApp = create<AppState>((set, get) => ({
     pushSelection(selection);
   },
   cycleOutfit: (dir) => {
-    const { gender, occasion, outfitId } = get();
-    const list = OUTFITS.filter((o) => o.gender === gender && (occasion === 'All' || o.occasion === occasion));
+    const { gender, occasion, tradition, outfitId } = get();
+    const list = visibleOutfits(gender, occasion, tradition);
     if (!list.length) return;
     const i = list.findIndex((o) => o.id === outfitId);
     const next = list[(i + dir + list.length) % list.length];

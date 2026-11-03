@@ -167,7 +167,7 @@ export function BackgroundsPanel() {
         <div className="setting">
           <div>
             Night sky in the windows
-            <small>Turns bright windows into fireworks at night</small>
+            <small>Indoor photos: bright windows become fireworks at night</small>
           </div>
           <Switch label="Night sky in the windows" checked={officeWindows} onChange={(v) => void setOfficeWindows(v)} />
         </div>

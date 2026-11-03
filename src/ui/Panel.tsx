@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { useApp, type Occasion } from '../state/store';
-import { OUTFITS, OUTFIT_MAP, PALETTE, PIECE_MAP, ZARI_OPTIONS, piecesFor } from '../engine/catalog/catalog';
+import { useApp, visibleOutfits, type Occasion } from '../state/store';
+import { OUTFIT_MAP, PALETTE, PIECE_MAP, TRADITIONS, TRADITION_MAP, ZARI_OPTIONS, piecesFor } from '../engine/catalog/catalog';
 import { SLOT_LABELS, SLOT_ORDER, type SlotId, type StyleControl } from '../engine/catalog/types';
 import { FABRICS, type FabricType } from '../engine/materials/FabricLibrary';
 import { BORDER_LABELS, PATTERN_LABELS, drawBorder, drawPattern, type BorderId, type PatternColors, type PatternId } from '../engine/materials/patterns';
@@ -42,6 +42,37 @@ export function Panel() {
   );
 }
 
+const traditionLabel = (id: string) => (id === 'all' ? 'All traditions' : (TRADITION_MAP.get(id)?.label ?? id));
+
+/**
+ * Pick outfits by culture or faith (Bengali, Rajasthani, Sikh, ...). A native
+ * select sits invisibly over a styled pill, so phones get their own picker.
+ */
+function TraditionPicker({ variant }: { variant: 'pill' | 'tile' }) {
+  const { tradition, setTradition } = useApp(useShallow((s) => ({ tradition: s.tradition, setTradition: s.setTradition })));
+  return (
+    <label className={`trad ${variant}`} data-active={tradition !== 'all'}>
+      <span className="trad-k">Tradition</span>
+      <span className="trad-v">{traditionLabel(tradition)}</span>
+      <svg className="trad-caret" viewBox="0 0 24 24" aria-hidden width="14" height="14">
+        <path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <select value={tradition} onChange={(e) => setTradition(e.target.value)} aria-label="Choose outfits by tradition">
+        <option value="all">All traditions</option>
+        {(['Regional', 'Faith'] as const).map((g) => (
+          <optgroup key={g} label={g === 'Regional' ? 'Regional traditions' : 'Faith communities'}>
+            {TRADITIONS.filter((t) => t.group === g).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /** Headwear and jewellery on or off for every outfit. */
 function AccessoriesToggle() {
   const { accessories, setAccessories } = useApp(useShallow((s) => ({ accessories: s.accessories, setAccessories: s.setAccessories })));
@@ -62,13 +93,16 @@ function LibraryHead() {
   const { gender, setGender, occasion, setOccasion } = useApp(useShallow((s) => ({ gender: s.gender, setGender: s.setGender, occasion: s.occasion, setOccasion: s.setOccasion })));
   return (
     <>
-      <div className="gender" role="group" aria-label="Collection">
-        <button aria-pressed={gender === 'women'} onClick={() => setGender('women')}>
-          Women
-        </button>
-        <button aria-pressed={gender === 'men'} onClick={() => setGender('men')}>
-          Men
-        </button>
+      <div className="lib-row">
+        <div className="gender" role="group" aria-label="Collection">
+          <button aria-pressed={gender === 'women'} onClick={() => setGender('women')}>
+            Women
+          </button>
+          <button aria-pressed={gender === 'men'} onClick={() => setGender('men')}>
+            Men
+          </button>
+        </div>
+        <TraditionPicker variant="pill" />
       </div>
       <div className="chips" role="group" aria-label="Occasion">
         {OCCASIONS.map((o) => (
@@ -83,15 +117,27 @@ function LibraryHead() {
 }
 
 function Library() {
-  const { gender, occasion, outfitId, chooseOutfit, thumbs } = useApp(
-    useShallow((s) => ({ gender: s.gender, occasion: s.occasion, outfitId: s.outfitId, chooseOutfit: s.chooseOutfit, thumbs: s.thumbs })),
+  const { gender, occasion, tradition, setTradition, outfitId, chooseOutfit, thumbs } = useApp(
+    useShallow((s) => ({ gender: s.gender, occasion: s.occasion, tradition: s.tradition, setTradition: s.setTradition, outfitId: s.outfitId, chooseOutfit: s.chooseOutfit, thumbs: s.thumbs })),
   );
-  const list = OUTFITS.filter((o) => o.gender === gender && (occasion === 'All' || o.occasion === occasion));
+  const list = visibleOutfits(gender, occasion, tradition);
   const current = outfitId ? OUTFIT_MAP.get(outfitId) : null;
   return (
     <>
-      <p className="lede">Pick a look to wear it instantly, then tailor colours, fabric and drape in Customise.</p>
+      {tradition === 'all' ? (
+        <p className="lede">Pick a look to wear it instantly, or choose a tradition above. Tailor colours, fabric and drape in Customise.</p>
+      ) : (
+        <p className="lede">
+          {traditionLabel(tradition)} outfits for {gender === 'men' ? 'men' : 'women'}.{' '}
+          <button className="text-btn inline" onClick={() => setTradition('all')}>
+            Show all
+          </button>
+        </p>
+      )}
       <div className="grid">
+        <div className="trad-card-wrap">
+          <TraditionPicker variant="tile" />
+        </div>
         {list.map((o) => (
           <button key={o.id} className="card" aria-pressed={o.id === outfitId} onClick={() => chooseOutfit(o.id)}>
             <div className="img">{thumbs[o.id] ? <img src={thumbs[o.id]} alt="" /> : <span className="ph">Tailoring…</span>}</div>
@@ -102,7 +148,7 @@ function Library() {
           </button>
         ))}
       </div>
-      {list.length === 0 && <p className="lede">No {gender === 'men' ? "men's" : "women's"} outfits for this occasion yet.</p>}
+      {list.length === 0 && <p className="lede">No {gender === 'men' ? "men's" : "women's"} outfits for this choice yet. Try another occasion or tradition.</p>}
       {current && (
         <div className="outfit-note">
           <b>{current.name}</b>
