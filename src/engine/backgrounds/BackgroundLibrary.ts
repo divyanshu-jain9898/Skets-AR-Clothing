@@ -1,5 +1,5 @@
 import type { BackdropImage } from '../render/Backdrop';
-import { BACKGROUND_MAP, OFFICE_PHOTO_URLS, type BackgroundDef } from './catalog';
+import { BACKGROUND_MAP, OFFICE_PHOTO_URL, type BackgroundDef } from './catalog';
 import type { PaintJob, SkyMask } from './paint/render';
 import type { NRect } from './paint/scene';
 import { deletePicture, getPicture, listPictures, putPicture, type StoredPicture } from './store';
@@ -22,50 +22,48 @@ type Pending = { job: PaintJob; priority: number; resolve: (r: PaintOut) => void
  */
 class PaintService {
   private worker: Worker | null = null;
-  private mode: Promise<'worker' | 'main'>;
+  private ready: Promise<void>;
   private queue: Pending[] = [];
   private busy = false;
   private seq = 1;
   private inflight = new Map<number, Pending>();
 
   constructor() {
-    this.mode = new Promise((resolve) => {
+    this.ready = new Promise((resolve) => {
+      let w: Worker;
       try {
-        const w = new Worker(new URL('./paint/paint.worker.ts', import.meta.url), { type: 'module' });
-        // a busy phone can take a while to boot the worker; give it time before falling back
-        const timer = setTimeout(() => {
-          w.terminate();
-          resolve('main');
-        }, 12000);
-        w.onmessage = (e) => {
-          const d = e.data;
-          if (d?.type === 'ready') {
-            clearTimeout(timer);
-            if (d.gpu) {
-              this.worker = w;
-              w.onmessage = (ev) => this.onDone(ev.data);
-              w.onerror = () => this.failWorker();
-              resolve('worker');
-            } else {
-              w.terminate();
-              resolve('main');
-            }
-          }
-        };
-        w.onerror = () => {
-          clearTimeout(timer);
-          w.terminate();
-          resolve('main');
-        };
+        w = new Worker(new URL('./paint/paint.worker.ts', import.meta.url), { type: 'module' });
       } catch {
-        resolve('main');
+        resolve();
+        return;
       }
+      // Don't hold painting back if the page is busy at start-up: paint on the
+      // main thread meanwhile, and switch to the worker as soon as it answers.
+      const timer = setTimeout(resolve, 8000);
+      w.onmessage = (e) => {
+        if (e.data?.type !== 'ready') return;
+        clearTimeout(timer);
+        if (e.data.gpu) {
+          this.worker = w;
+          w.onmessage = (ev) => this.onDone(ev.data);
+          w.onerror = () => this.failWorker();
+          void this.pump();
+        } else {
+          w.terminate();
+        }
+        resolve();
+      };
+      w.onerror = () => {
+        clearTimeout(timer);
+        w.terminate();
+        resolve();
+      };
     });
   }
 
   /** Where painting happens (for diagnostics). */
-  get where() {
-    return this.mode;
+  get where(): Promise<'worker' | 'main'> {
+    return this.ready.then(() => (this.worker ? 'worker' : 'main'));
   }
 
   paint(job: PaintJob, priority: number, transfer: Transferable[] = []): Promise<PaintOut> {
@@ -80,8 +78,8 @@ class PaintService {
     this.busy = true;
     this.queue.sort((a, b) => b.priority - a.priority);
     const p = this.queue.shift()!;
-    const mode = await this.mode;
-    if (mode === 'worker' && this.worker) {
+    await this.ready;
+    if (this.worker) {
       const id = this.seq++;
       this.inflight.set(id, p);
       this.worker.postMessage({ id, job: p.job }, p.transfer);
@@ -102,10 +100,22 @@ class PaintService {
     }
   }
 
-  private onDone(d: { type: string; id: number; ok: boolean; result?: PaintOut; error?: string }) {
+  private onDone(d: { type: string; id: number; ok: boolean; result?: PaintOut; error?: string; noGpu?: boolean; image?: ImageBitmap | null }) {
     if (d?.type !== 'done') return;
     const p = this.inflight.get(d.id);
     this.inflight.delete(d.id);
+    if (d.noGpu) {
+      // the worker can't paint on the GPU: retire it and paint here instead
+      this.worker?.terminate();
+      this.worker = null;
+      if (p) {
+        if ('image' in p.job && d.image) p.job = { ...p.job, image: d.image } as PaintJob;
+        this.queue.push(p);
+      }
+      this.busy = false;
+      void this.pump();
+      return;
+    }
     if (p) {
       if (d.ok && d.result) p.resolve(d.result);
       else p.reject(new Error(d.error ?? 'painting failed'));
@@ -117,7 +127,6 @@ class PaintService {
   private failWorker() {
     this.worker?.terminate();
     this.worker = null;
-    this.mode = Promise.resolve('main');
     for (const p of this.inflight.values()) p.reject(new Error('The painting worker stopped'));
     this.inflight.clear();
     this.busy = false;
@@ -185,13 +194,12 @@ export class BackgroundLibrary {
     this.officePhoto ??= (async () => {
       const stored = await getPicture(OFFICE_KEY);
       if (stored) return stored.blob;
-      for (const path of OFFICE_PHOTO_URLS) {
+      if (OFFICE_PHOTO_URL) {
         try {
-          const res = await fetch(new URL(path, document.baseURI).href);
-          const type = res.headers.get('content-type') ?? '';
-          if (res.ok && type.startsWith('image/')) return await res.blob();
+          const res = await fetch(new URL(OFFICE_PHOTO_URL, document.baseURI).href);
+          if (res.ok && (res.headers.get('content-type') ?? '').startsWith('image/')) return await res.blob();
         } catch {
-          /* not provided */
+          /* fall back to the built-in office */
         }
       }
       return null;

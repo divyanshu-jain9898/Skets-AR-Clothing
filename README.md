@@ -90,7 +90,7 @@ The office card paints a festive canvas painting from a photo of an office:
 To use **your** office, either:
 
 - in the app: **Backgrounds > Paint my office from a photo** (stored only on that device), or
-- for everyone who opens your deployment: save the photo as `public/backgrounds/my-office.jpg` (`.png` and `.webp` also work) and rebuild. The app paints it on first use.
+- for everyone who opens your deployment: save the photo as `public/backgrounds/my-office.jpg` (`.png` and `.webp` also work) and rebuild (restart `npm run dev` if it is running). With the GitHub Pages workflow, committing the photo to `main` is enough. The app paints it on first use.
 
 Until a photo is provided, a built-in modern office is painted and converted the same way. If the detector mistakes a white wall for a window, turn off **Night sky in the windows** under the office card.
 
