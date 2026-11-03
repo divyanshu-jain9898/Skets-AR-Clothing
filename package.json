@@ -1,0 +1,38 @@
+{
+  "name": "vastra-ar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Web-based AR virtual try-on for Indian traditional outfits (Three.js + MediaPipe Pose)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "dev:https": "vite --host --mode https",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview --host",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "assets": "node scripts/fetch-assets.mjs",
+    "postinstall": "node scripts/fetch-assets.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/anek-latin": "^5.3.0",
+    "@fontsource/rozha-one": "^5.3.0",
+    "@mediapipe/tasks-vision": "^1.2.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.187.0",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitejs/plugin-react": "^6.2.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

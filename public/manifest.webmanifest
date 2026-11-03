@@ -1,0 +1,10 @@
+{
+  "name": "Vastra AR - Virtual try-on for Indian wear",
+  "short_name": "Vastra AR",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#161a43",
+  "theme_color": "#20265c",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
