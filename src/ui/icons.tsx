@@ -97,3 +97,28 @@ export const IconRotate = (p: SVGProps<SVGSVGElement>) => (
     <path d="m9 13 3 3-3 3" />
   </svg>
 );
+export const IconBackdrop = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <rect x="3.5" y="5" width="17" height="14" rx="2" />
+    <path d="m3.5 16 4.5-4 3.5 3 3-2.5 6 4.5" />
+    <path d="M16.5 7.2v2.6M15.2 8.5h2.6" />
+  </svg>
+);
+export const IconBan = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="8" />
+    <path d="m6.4 6.4 11.2 11.2" />
+  </svg>
+);
+export const IconUpload = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M12 16V5m0 0L7.5 9.5M12 5l4.5 4.5M5 19.5h14" />
+  </svg>
+);
+/** Earthen diya with a flame. */
+export const IconDiya = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <path d="M3.5 13.5h15.5l1.5-1.5c-.4 3.6-3.8 6-8.3 6S4.3 16.7 3.5 13.5z" />
+    <path d="M12 11c-1.6-1.2-1.6-3.3 0-6 1.6 2.7 1.6 4.8 0 6z" />
+  </svg>
+);

@@ -30,6 +30,9 @@ export function Onboarding() {
           Vastra tracks your body right in the browser and drapes 3D outfits that follow every move. Change colours, fabrics and
           drapes, then save the look as a photo or clip. Your camera feed never leaves this device.
         </p>
+        <p className="festive-note">
+          <b>Diwali edition:</b> stand in front of painted festive scenes, or in your own office painted as a Diwali canvas. Find them under Backgrounds.
+        </p>
         <div className="actions">
           <button ref={first} className="btn primary" onClick={() => void startCamera()}>
             <IconCamera />
@@ -124,6 +127,7 @@ export function Settings() {
         {s.mode === 'camera' && (
           <p className="stats">
             {Math.round(s.stats.fps)} fps, body tracking {s.stats.inferMs.toFixed(1)} ms on {s.stats.delegate}, rendering {s.stats.renderMs.toFixed(1)} ms
+            {s.stats.segMs > 0.05 && `, background cut-out ${s.stats.segMs.toFixed(1)} ms`}
           </p>
         )}
         <p className="fineprint">Tip: use the left and right arrow keys to flick through outfits.</p>

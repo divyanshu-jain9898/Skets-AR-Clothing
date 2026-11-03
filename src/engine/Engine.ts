@@ -1,6 +1,8 @@
 import { ARRenderer } from './render/ARRenderer';
 import { Mannequin, Occluders, Skeleton } from './render/BodyVisuals';
 import { PoseTracker } from './tracking/PoseTracker';
+import { PersonSegmenter } from './tracking/PersonSegmenter';
+import type { Backdrop } from './render/Backdrop';
 import { SyntheticPose, type MannequinPose } from './tracking/SyntheticPose';
 import { CameraSource, type Facing } from './camera/CameraSource';
 import { BodyRig } from './body/BodyRig';
@@ -17,7 +19,13 @@ export interface EngineCallbacks {
   onHint?: (hint: string | null) => void;
   onMode?: (mode: SourceMode) => void;
   onQuality?: (level: QualityLevel, reason: string) => void;
+  /** Background cut-out readiness (segmentation model loading, errors). */
+  onBackdrop?: (state: BackdropState, message?: string) => void;
+  /** The view switched between portrait and landscape. */
+  onOrientation?: (portrait: boolean) => void;
 }
+
+export type BackdropState = 'idle' | 'loading' | 'ready' | 'error';
 
 type VFCVideo = HTMLVideoElement & {
   requestVideoFrameCallback?: (cb: (now: number, meta: unknown) => void) => number;
@@ -31,6 +39,7 @@ type VFCVideo = HTMLVideoElement & {
 export class Engine {
   readonly renderer: ARRenderer;
   readonly tracker = new PoseTracker();
+  readonly segmenter = new PersonSegmenter();
   readonly camera = new CameraSource();
   readonly rig = new BodyRig();
   readonly shape = new BodyShape();
@@ -61,7 +70,10 @@ export class Engine {
   private chunks: Blob[] = [];
   private destroyed = false;
   private mirrorPref = true;
-  private stats: EngineStats = { fps: 0, inferMs: 0, renderMs: 0, delegate: '-' };
+  private stats: EngineStats = { fps: 0, inferMs: 0, renderMs: 0, segMs: 0, delegate: '-' };
+  private segFrame = 0;
+  private portrait: boolean | null = null;
+  private segToken = 0;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -151,6 +163,71 @@ export class Engine {
     this.synth.autoRotate = auto;
   }
 
+  // ------------------------------------------------------------ backdrop
+  /** Whether the visible view is portrait (backdrops are painted to match). */
+  get viewPortrait() {
+    return this.portrait ?? this.renderer.viewH > this.renderer.viewW * 1.05;
+  }
+
+  get backdrop(): Backdrop {
+    return this.renderer.backdrop;
+  }
+
+  /**
+   * Puts a new backdrop behind the person. Switching never restarts the
+   * camera or the tracker: only the composite changes. The person mask is
+   * computed only while a backdrop other than the camera image is active.
+   */
+  setBackdrop(b: Backdrop) {
+    this.renderer.setBackdrop(b);
+    if (b.kind === 'camera') {
+      this.renderer.clearPersonMask();
+      this.cb.onBackdrop?.('idle');
+      return;
+    }
+    if (this.mode === 'mannequin') {
+      this.cb.onBackdrop?.('ready');
+      return;
+    }
+    if (this.mode === 'photo') void this.segmentPhoto();
+    else void this.prepareSegmentation();
+  }
+
+  setBackdropAnimation(on: boolean) {
+    this.renderer.setBackdropAnimation(on);
+  }
+
+  private async prepareSegmentation(): Promise<boolean> {
+    if (this.segmenter.ready) {
+      this.cb.onBackdrop?.('ready');
+      return true;
+    }
+    this.cb.onBackdrop?.('loading', 'Preparing the background cut-out…');
+    try {
+      await this.segmenter.ensure();
+      if (!this.destroyed) this.cb.onBackdrop?.('ready');
+      return true;
+    } catch (err) {
+      this.cb.onBackdrop?.('error', `Background replacement is unavailable here: ${err instanceof Error ? err.message : String(err)}`);
+      return false;
+    }
+  }
+
+  /** Photo mode: segment the still once and keep the mask. */
+  private async segmentPhoto() {
+    const c = this.photoCanvas;
+    if (!c || !this.renderer.wantsMask) return;
+    const token = ++this.segToken;
+    if (!(await this.prepareSegmentation())) return;
+    try {
+      const ok = await this.segmenter.segmentImage(c, this.photoPose);
+      const m = this.segmenter.mask;
+      if (ok && m && token === this.segToken && this.mode === 'photo' && this.photoCanvas === c && this.renderer.wantsMask) this.renderer.setPersonMask(m, this.segmenter.maskW, this.segmenter.maskH);
+    } catch (err) {
+      console.warn('[engine] photo segmentation failed', err);
+    }
+  }
+
   // ------------------------------------------------------------- tracking
   ensureTracker(force = false): Promise<void> {
     if (this.trackerLoading && !force) return this.trackerLoading;
@@ -183,8 +260,10 @@ export class Engine {
     this.mannequin.group.visible = false;
     this.occluders.group.visible = this.occlusion;
     this.wardrobe.resetPhysics();
+    this.segmenter.reset();
     this.cb.onStatus?.(this.tracker.ready ? 'searching' : 'loading', this.tracker.ready ? 'Looking for you…' : 'Loading body tracking…');
     void this.ensureTracker().catch(() => undefined);
+    if (this.renderer.wantsMask) void this.prepareSegmentation();
     this.lastT = performance.now() / 1000;
     this.scheduleVideo();
   }
@@ -230,6 +309,17 @@ export class Engine {
         console.warn('[engine] detection error', err);
       }
     }
+    if (this.renderer.wantsMask && this.segmenter.ready) {
+      // on the lightest preset the cut-out refreshes every other frame
+      const skip = this.quality.level === 'performance' && (this.segFrame++ & 1) === 1;
+      if (!skip) {
+        try {
+          if (this.segmenter.segmentVideo(v, nowMs, pose) && this.segmenter.mask) this.renderer.setPersonMask(this.segmenter.mask, this.segmenter.maskW, this.segmenter.maskH);
+        } catch (err) {
+          console.warn('[engine] segmentation error', err);
+        }
+      }
+    }
     this.renderer.updateVideoFrame();
     const t = nowMs / 1000;
     this.process(pose, t, false, v);
@@ -262,6 +352,7 @@ export class Engine {
     this.wardrobe.resetPhysics();
     this.cb.onStatus?.('tracking', 'Photo try-on');
     this.lastT = performance.now() / 1000;
+    if (this.renderer.wantsMask) void this.segmentPhoto();
   }
 
   showMannequin() {
@@ -270,6 +361,7 @@ export class Engine {
     this.cb.onMode?.('mannequin');
     this.rig.reset();
     this.renderer.setBackground('studio');
+    if (this.renderer.backdrop.kind !== 'camera') this.cb.onBackdrop?.('ready');
     this.updateMannequinFrame();
     this.renderer.setMirror(false);
     this.renderer.studioLights();
@@ -307,6 +399,12 @@ export class Engine {
 
   private process(pose: PoseInput | null, t: number, snap: boolean, lightSrc: HTMLVideoElement | HTMLCanvasElement | null) {
     const t0 = performance.now();
+    // backdrops fill the visible view, so they follow its orientation
+    const portrait = this.renderer.viewH > this.renderer.viewW * 1.05;
+    if (portrait !== this.portrait) {
+      this.portrait = portrait;
+      this.cb.onOrientation?.(portrait);
+    }
     const dt = clamp(t - this.lastT, 1 / 240, 0.1);
     this.lastT = t;
     const rig = this.rig;
@@ -329,14 +427,17 @@ export class Engine {
     this.skeleton.lines.visible = this.showSkeleton && rig.hasPose && this.mode !== 'mannequin';
     if (lightSrc && this.autoLighting) this.renderer.estimateLighting(lightSrc, rig, dt);
     else if (lightSrc) this.renderer.studioLights();
+    this.renderer.advanceBackdrop(dt);
     const t1 = performance.now();
     this.renderer.render();
     const t2 = performance.now();
 
     // stats + guidance
     this.frames++;
-    this.procMs = this.procMs * 0.9 + (t2 - t0 + (this.mode === 'camera' ? this.tracker.lastInferMs : 0)) * 0.1;
+    const segMs = this.mode === 'camera' && this.renderer.wantsMask ? this.segmenter.lastMs : 0;
+    this.procMs = this.procMs * 0.9 + (t2 - t0 + (this.mode === 'camera' ? this.tracker.lastInferMs + segMs : 0)) * 0.1;
     this.stats.inferMs = this.stats.inferMs * 0.9 + this.tracker.lastInferMs * 0.1;
+    this.stats.segMs = this.stats.segMs * 0.9 + segMs * 0.1;
     this.stats.renderMs = this.stats.renderMs * 0.9 + (t2 - t1 + (t1 - t0)) * 0.1;
     if (t - this.fpsT >= 1) {
       this.stats.fps = this.frames / (t - this.fpsT);
@@ -436,6 +537,7 @@ export class Engine {
     this.camera.stop();
     this.wardrobe.clear();
     this.tracker.close();
+    this.segmenter.close();
     this.renderer.dispose();
     document.removeEventListener('visibilitychange', this.onVisibility);
   }

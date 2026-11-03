@@ -3,11 +3,17 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../state/store';
 import { flipCamera, pickPhoto, startCamera, takePhoto, toggleRecording, useMannequin } from '../state/actions';
 import type { MannequinPose } from '../engine/tracking/SyntheticPose';
-import { IconCamera, IconFlip, IconGallery, IconGear, IconMannequin, IconPhoto, IconRecord, IconRotate, IconStop, IconTimer } from './icons';
+import { IconCamera, IconDiya, IconFlip, IconGallery, IconGear, IconMannequin, IconPhoto, IconRecord, IconRotate, IconStop, IconTimer } from './icons';
 
 export function TopBar() {
   const mode = useApp((s) => s.mode);
   const setSettingsOpen = useApp((s) => s.setSettingsOpen);
+  const bgOpen = useApp((s) => s.panel === 'backgrounds');
+  const openBackgrounds = () => {
+    const s = useApp.getState();
+    s.setPanel('backgrounds');
+    if (window.matchMedia?.('(max-width: 760px)').matches) s.setSheetExpanded(true);
+  };
   return (
     <header className="topbar">
       <div className="wordmark" aria-label="Vastra AR">
@@ -28,6 +34,9 @@ export function TopBar() {
           <span>Mannequin</span>
         </button>
       </nav>
+      <button className="icon-btn festive-btn" aria-pressed={bgOpen} onClick={openBackgrounds} aria-label="Diwali backgrounds" title="Diwali backgrounds">
+        <IconDiya />
+      </button>
       <button className="icon-btn" onClick={() => setSettingsOpen(true)} aria-label="Settings">
         <IconGear />
       </button>

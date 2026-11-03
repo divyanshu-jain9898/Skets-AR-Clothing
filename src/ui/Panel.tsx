@@ -5,6 +5,7 @@ import { OUTFITS, OUTFIT_MAP, PALETTE, PIECE_MAP, ZARI_OPTIONS, piecesFor } from
 import { SLOT_LABELS, SLOT_ORDER, type SlotId, type StyleControl } from '../engine/catalog/types';
 import { FABRICS, type FabricType } from '../engine/materials/FabricLibrary';
 import { BORDER_LABELS, PATTERN_LABELS, drawBorder, drawPattern, type BorderId, type PatternColors, type PatternId } from '../engine/materials/patterns';
+import { BackgroundsPanel } from './Backgrounds';
 
 const OCCASIONS: Occasion[] = ['All', 'Wedding', 'Festive', 'Everyday', 'Ceremonial'];
 
@@ -13,7 +14,7 @@ export function Panel() {
     useShallow((s) => ({ panel: s.panel, setPanel: s.setPanel, expanded: s.sheetExpanded, setExpanded: s.setSheetExpanded })),
   );
   return (
-    <aside className={`panel${expanded ? ' expanded' : ''}`} aria-label="Outfits and customisation">
+    <aside className={`panel${expanded ? ' expanded' : ''}`} aria-label="Outfits, customisation and backgrounds" data-tab={panel}>
       <button className="handle" onClick={() => setExpanded(!expanded)} aria-label={expanded ? 'Collapse panel' : 'Expand panel'} aria-expanded={expanded} />
       <div className="panel-head">
         <div className="tabs" role="tablist">
@@ -30,10 +31,13 @@ export function Panel() {
           >
             Customise
           </button>
+          <button role="tab" aria-selected={panel === 'backgrounds'} onClick={() => setPanel('backgrounds')} className="festive">
+            Backgrounds
+          </button>
         </div>
         {panel === 'outfits' && <LibraryHead />}
       </div>
-      <div className="panel-body">{panel === 'outfits' ? <Library /> : <Customiser />}</div>
+      <div className="panel-body">{panel === 'outfits' ? <Library /> : panel === 'customise' ? <Customiser /> : <BackgroundsPanel />}</div>
     </aside>
   );
 }
