@@ -1,6 +1,7 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useEffect, useState } from 'react';
 import { useApp } from '../state/store';
+import { isSheetLayout } from './layout';
 import { flipCamera, pickPhoto, startCamera, takePhoto, toggleRecording, useMannequin } from '../state/actions';
 import type { MannequinPose } from '../engine/tracking/SyntheticPose';
 import { IconCamera, IconDiya, IconFlip, IconGallery, IconGear, IconMannequin, IconPhoto, IconRecord, IconRotate, IconStop, IconTimer } from './icons';
@@ -12,7 +13,7 @@ export function TopBar() {
   const openBackgrounds = () => {
     const s = useApp.getState();
     s.setPanel('backgrounds');
-    if (window.matchMedia?.('(max-width: 760px)').matches) s.setSheetExpanded(true);
+    if (isSheetLayout()) s.setSheetExpanded(true);
   };
   return (
     <header className="topbar">
