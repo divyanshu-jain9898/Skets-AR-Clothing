@@ -9,7 +9,7 @@ import { SkirtGarment, type SkirtParams } from './garments/SkirtGarment';
 import { PantsGarment, type PantsParams } from './garments/PantsGarment';
 import { ClothDrape, type DrapeParams, type DrapeStyle } from './garments/ClothDrape';
 import { SareeGarment, type SareeParams } from './garments/SareeGarment';
-import { TopiGarment, TurbanGarment, type TurbanParams } from './garments/Headwear';
+import { TopiGarment, TurbanGarment, type TopiParams, type TurbanParams } from './garments/Headwear';
 import { JewelryGarment, type JewelryParams } from './garments/Jewelry';
 
 export function createGarment(state: SlotState, ctx: GarmentContext): Garment | null {
@@ -30,7 +30,7 @@ export function createGarment(state: SlotState, ctx: GarmentContext): Garment | 
     case 'turban':
       return new TurbanGarment(ctx, state.fabric, params as Partial<TurbanParams>);
     case 'topi':
-      return new TopiGarment(ctx, state.fabric);
+      return new TopiGarment(ctx, state.fabric, params as Partial<TopiParams>);
     case 'jewelry':
       return new JewelryGarment(ctx, state.fabric, params as Partial<JewelryParams>);
     default:

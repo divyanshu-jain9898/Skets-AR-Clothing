@@ -27,7 +27,8 @@ export type PatternId =
   | 'block'
   | 'checks'
   | 'jaal'
-  | 'stripes';
+  | 'stripes'
+  | 'kali';
 export type BorderId = 'none' | 'temple' | 'vine' | 'gota' | 'mirror' | 'simple' | 'kasavu';
 export type WeaveKind = 'plain' | 'twill' | 'satin' | 'velvet';
 
@@ -56,6 +57,7 @@ export const PATTERN_LABELS: Record<PatternId, string> = {
   checks: 'Madras Checks',
   jaal: 'Zari Jaal',
   stripes: 'Pinstripe',
+  kali: 'Kalidar Panels',
 };
 
 export const BORDER_LABELS: Record<BorderId, string> = {
@@ -1155,6 +1157,29 @@ const stripesPattern: PatternFn = (p, S) => {
   p.rect(S - 5 * k, 0, Math.max(1, 1 * k), S, 'border');
 };
 
+/** Kalidar ghagra: panels of four colours (base, accent, border, deep border) with zari piping on the seams. */
+const kaliPanels: PatternFn = (p, S) => {
+  const k = S / 512;
+  const inks: Ink[] = ['base', 'accent', 'border', 'borderDark'];
+  const w = S / 4;
+  for (let i = 0; i < 4; i++) p.rect(i * w, 0, w + 1, S, inks[i]);
+  // a soft sheen down the middle of each panel, like dyed silk catching light
+  if (!p.orm) {
+    const c = p.ctx;
+    for (let i = 0; i < 4; i++) {
+      const g = c.createLinearGradient(i * w, 0, (i + 1) * w, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0.12)');
+      g.addColorStop(0.5, 'rgba(255,255,255,0.08)');
+      g.addColorStop(1, 'rgba(0,0,0,0.12)');
+      c.fillStyle = g;
+      c.fillRect(i * w, 0, w, S);
+    }
+  }
+  zariLayer(p, S, S, (q) => {
+    for (let i = 0; i <= 4; i++) q.rect(i * w - 3 * k, 0, 6 * k, S, 'zari');
+  });
+};
+
 const PATTERN_FNS: Record<PatternId, PatternFn> = {
   plain,
   paisley: paisleyPattern,
@@ -1168,6 +1193,7 @@ const PATTERN_FNS: Record<PatternId, PatternFn> = {
   checks,
   jaal,
   stripes: stripesPattern,
+  kali: kaliPanels,
 };
 
 const GRAIN: Record<PatternId, number> = {
@@ -1183,6 +1209,7 @@ const GRAIN: Record<PatternId, number> = {
   checks: 0.16,
   jaal: 0.1,
   stripes: 0.18,
+  kali: 0.14,
 };
 
 /** Seamless square tile. */

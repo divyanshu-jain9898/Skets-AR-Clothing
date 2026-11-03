@@ -8,7 +8,8 @@ import type { FabricSpec } from '../materials/FabricLibrary';
 import { TAU, lerp, smoothstep } from '../core/math';
 
 export interface TurbanParams {
-  style: 'safa' | 'pagdi';
+  /** safa / pagdi (Rajasthani), dastar (Sikh turban with a peaked front). */
+  style: 'safa' | 'pagdi' | 'dastar';
   height: number;
   tail: boolean;
   kalgi: boolean;
@@ -28,7 +29,7 @@ function headPoint(shape: BodyShape, x: number, y: number, z: number, out: Vecto
     .addScaledVector(hd.fwd, z * w);
 }
 
-/** Rajasthani safa / pagdi: wrapped dome with criss-crossing folds, kalgi and a cloth tail. */
+/** Rajasthani safa / pagdi and Sikh dastar: wrapped dome with criss-crossing folds, kalgi and a cloth tail. */
 export class TurbanGarment extends Garment {
   readonly p: TurbanParams;
   private grid: GridMesh;
@@ -75,8 +76,9 @@ export class TurbanGarment extends Garment {
     const rows = g.rows;
     const cols = g.cols;
     const pagdi = this.p.style === 'pagdi';
-    const top = (pagdi ? 1.05 : 1.22) * this.p.height;
-    const layers = pagdi ? 5 : 7;
+    const dastar = this.p.style === 'dastar';
+    const top = (dastar ? 1.1 : pagdi ? 1.05 : 1.22) * this.p.height;
+    const layers = dastar ? 6 : pagdi ? 5 : 7;
     for (let i = 0; i < rows; i++) {
       const t = i / (rows - 1); // 0 brim .. 1 crown
       for (let j = 0; j < cols; j++) {
@@ -84,21 +86,23 @@ export class TurbanGarment extends Garment {
         const cs = Math.cos(th);
         const sn = Math.sin(th);
         // brim tilts: higher at the forehead, lower at the nape
-        const brimY = 0.22 + 0.2 * cs;
-        const y = lerp(brimY, top + (pagdi ? 0.05 : 0.12) * cs, t);
+        const brimY = dastar ? 0.16 + 0.2 * cs : 0.22 + 0.2 * cs;
+        // a dastar rises to a crisp peak above the forehead and slopes down to the back
+        const crown = dastar ? 0.13 * Math.pow(Math.max(0, cs), 2) - 0.05 * (1 - cs) : (pagdi ? 0.05 : 0.12) * cs;
+        const y = lerp(brimY, top + crown, t);
         // dome profile
         const dome = Math.sin(Math.min(1, t * 1.05) * Math.PI * 0.5 + Math.PI * 0.5 * smoothstep(0.55, 1, t));
         const bulge = 1 + 0.16 * Math.sin(t * Math.PI) - 0.08 * t;
         let rx = 0.63 * bulge;
         let rz = 0.74 * bulge;
-        const close = 1 - smoothstep(0.7, 1, t);
+        const close = 1 - smoothstep(dastar ? 0.86 : 0.7, 1, t);
         rx *= lerp(0.18, 1, close) * (0.8 + 0.2 * dome);
         rz *= lerp(0.25, 1, close) * (0.8 + 0.2 * dome);
-        // wrapped folds crossing at the front
-        const tilt = 0.9 * sn * (1 - 0.4 * t);
-        const fold = Math.pow(Math.abs(Math.sin(Math.PI * layers * (t + tilt * 0.12))), 0.45);
+        // wrapped folds crossing at the front (a dastar's layers meet in a V)
+        const tilt = dastar ? 1.15 * Math.abs(sn) : 0.9 * sn * (1 - 0.4 * t);
+        const fold = Math.pow(Math.abs(Math.sin(Math.PI * layers * (t + tilt * 0.12))), dastar ? 0.7 : 0.45);
         const r = 1 + 0.07 * fold * (1 - smoothstep(0.75, 1, t)) - 0.03;
-        const fwdShift = (pagdi ? 0.02 : 0.06) * t;
+        const fwdShift = (pagdi || dastar ? 0.02 : 0.06) * t;
         headPoint(shape, sn * rx * r, y, cs * rz * r + fwdShift - 0.02, v0);
         g.set(i, j, v0);
       }
@@ -124,17 +128,44 @@ export class TurbanGarment extends Garment {
   }
 }
 
-/** Gandhi / Nehru topi: boat-shaped cap pinched into a centre ridge. */
+export interface TopiParams {
+  /** gandhi: boat-shaped cap; taqiyah: rounded skull cap. */
+  style: 'gandhi' | 'taqiyah';
+}
+
+/** Gandhi / Nehru topi (boat-shaped, pinched into a ridge) or a rounded taqiyah skull cap. */
 export class TopiGarment extends Garment {
   private grid: GridMesh;
-  constructor(ctx: GarmentContext, fabric: FabricSpec) {
+  readonly p: TopiParams;
+  constructor(ctx: GarmentContext, fabric: FabricSpec, params: Partial<TopiParams> = {}) {
     super(ctx, fabric);
+    this.p = { style: 'gandhi', ...params };
     this.stage = Stage.Accessory;
     this.grid = new GridMesh(8, 40, true, [{ r0: 0, r1: 7, material: 0, uv: 'body' }], 2, 1);
     this.mesh(this.grid.geometry, [ctx.lib.body(fabric)]);
   }
   update(_rig: BodyRig, shape: BodyShape) {
     const g = this.grid;
+    if (this.p.style === 'taqiyah') {
+      // a snug dome on the head ellipsoid (centre 0.22 up, 0.04 forward; radii
+      // 0.58 / 0.8 / 0.68 ear-widths), brim a little higher at the forehead
+      const k = 1.07;
+      for (let i = 0; i < g.rows; i++) {
+        const f = i / (g.rows - 1);
+        for (let j = 0; j < g.cols; j++) {
+          const th = (j / g.cols) * TAU;
+          const cs = Math.cos(th);
+          const sn = Math.sin(th);
+          const phi = lerp(0.39 + 0.1 * cs, 1.5, f);
+          const c = Math.cos(phi);
+          headPoint(shape, sn * 0.58 * k * c, 0.22 + 0.8 * k * Math.sin(phi), 0.04 + cs * 0.68 * k * c, v0);
+          g.set(i, j, v0);
+        }
+      }
+      g.computeNormals();
+      g.commit();
+      return;
+    }
     for (let i = 0; i < g.rows; i++) {
       const t = i / (g.rows - 1);
       for (let j = 0; j < g.cols; j++) {

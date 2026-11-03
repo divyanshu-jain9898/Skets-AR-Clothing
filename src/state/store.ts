@@ -32,7 +32,7 @@ export const getEngine = () => engineRef;
 const isMobile = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 760);
 
 const PREFS_KEY = 'vastra-prefs-v1';
-function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean; bgId: string; bgAnimate: boolean; officeWindows: boolean }> {
+function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean; bgId: string; bgAnimate: boolean; officeWindows: boolean; accessories: boolean }> {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
   } catch {
@@ -48,6 +48,25 @@ function savePrefs(p: object) {
 }
 
 const prefs = loadPrefs();
+
+/**
+ * Jewellery and decorative headwear are the accessories; "None" leaves them
+ * off every outfit. Religious headwear (a Sikh dastar, a taqiyah) is attire,
+ * not an accessory, and stays.
+ */
+const ACCESSORY_SLOTS: SlotId[] = ['head', 'jewelry'];
+function withoutAccessories(sel: OutfitSelection): OutfitSelection {
+  const slots = { ...sel.slots };
+  for (const k of ACCESSORY_SLOTS) {
+    const st = slots[k];
+    if (st && !PIECE_MAP.get(st.pieceId)?.attire) delete slots[k];
+  }
+  return { ...sel, slots };
+}
+const outfitSelection = (o: Parameters<typeof selectionFromOutfit>[0], accessories: boolean) => {
+  const sel = selectionFromOutfit(o);
+  return accessories ? sel : withoutAccessories(sel);
+};
 const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 export type PanelTab = 'outfits' | 'customise' | 'backgrounds';
@@ -87,6 +106,8 @@ export interface AppState {
   recording: boolean;
   recordStart: number;
   hasMultipleCameras: boolean;
+  /** Wear the outfit's headwear and jewellery (false = "None"). */
+  accessories: boolean;
   /** Selected background id (see engine/backgrounds/catalog). */
   bgId: string;
   /** A picture background is being painted. */
@@ -134,6 +155,7 @@ export interface AppState {
   setCountdown: (n: number) => void;
   setRecording: (v: boolean) => void;
   setHasMultipleCameras: (v: boolean) => void;
+  setAccessories: (v: boolean) => void;
 }
 
 let toastId = 1;
@@ -155,6 +177,7 @@ export function persist(s: AppState) {
     bgId: s.bgId,
     bgAnimate: s.bgAnimate,
     officeWindows: s.officeWindows,
+    accessories: s.accessories,
   });
 }
 
@@ -168,7 +191,7 @@ export const useApp = create<AppState>((set, get) => ({
   gender: initialGender,
   occasion: 'All',
   outfitId: initialOutfit.id,
-  selection: selectionFromOutfit(initialOutfit),
+  selection: outfitSelection(initialOutfit, prefs.accessories ?? true),
   activeSlot: 'top',
   quality: prefs.quality ?? (isMobile() ? 'balanced' : 'quality'),
   mirror: prefs.mirror ?? true,
@@ -191,6 +214,7 @@ export const useApp = create<AppState>((set, get) => ({
   recording: false,
   recordStart: 0,
   hasMultipleCameras: false,
+  accessories: prefs.accessories ?? true,
   bgId: prefs.bgId ?? DEFAULT_BACKGROUND,
   bgPainting: false,
   bgCutout: 'idle',
@@ -208,7 +232,7 @@ export const useApp = create<AppState>((set, get) => ({
   setGender: (gender) => {
     if (gender === get().gender) return;
     const first = OUTFITS.find((o) => o.gender === gender && (get().occasion === 'All' || o.occasion === get().occasion)) ?? OUTFITS.find((o) => o.gender === gender)!;
-    const selection = selectionFromOutfit(first);
+    const selection = outfitSelection(first, get().accessories);
     set({ gender, outfitId: first.id, selection, activeSlot: 'top' });
     pushSelection(selection);
     persist(get());
@@ -217,7 +241,7 @@ export const useApp = create<AppState>((set, get) => ({
   chooseOutfit: (id) => {
     const o = OUTFIT_MAP.get(id);
     if (!o) return;
-    const selection = selectionFromOutfit(o);
+    const selection = outfitSelection(o, get().accessories);
     set({ outfitId: id, selection, gender: o.gender, activeSlot: 'top' });
     pushSelection(selection);
   },
@@ -246,8 +270,11 @@ export const useApp = create<AppState>((set, get) => ({
       if (slot === 'drape' && slots.bottom && PIECE_MAP.get(slots.bottom.pieceId)?.kind === 'saree') delete slots.bottom;
     }
     const selection = { ...sel, slots };
-    set({ selection, outfitId: null, activeSlot: slot });
+    // picking a headwear or jewellery piece turns accessories back on
+    const accessories = pieceId && ACCESSORY_SLOTS.includes(slot) ? true : get().accessories;
+    set({ selection, outfitId: null, activeSlot: slot, accessories });
     pushSelection(selection);
+    persist(get());
   },
   updateSlot: (slot, patch) => {
     const sel = get().selection;
@@ -314,4 +341,19 @@ export const useApp = create<AppState>((set, get) => ({
   setCountdown: (countdown) => set({ countdown }),
   setRecording: (recording) => set({ recording, recordStart: recording ? performance.now() : 0 }),
   setHasMultipleCameras: (hasMultipleCameras) => set({ hasMultipleCameras }),
+  setAccessories: (accessories) => {
+    const { selection, outfitId } = get();
+    let next: OutfitSelection;
+    if (!accessories) next = withoutAccessories(selection);
+    else {
+      // bring back the chosen outfit's own headwear and jewellery, keep everything else
+      const o = outfitId ? OUTFIT_MAP.get(outfitId) : null;
+      const restore = o ? selectionFromOutfit(o).slots : {};
+      next = { ...selection, slots: { ...selection.slots } };
+      for (const k of ACCESSORY_SLOTS) if (restore[k] && !next.slots[k]) next.slots[k] = restore[k];
+    }
+    set({ accessories, selection: next, activeSlot: !accessories && ACCESSORY_SLOTS.includes(get().activeSlot) ? 'top' : get().activeSlot });
+    pushSelection(next);
+    persist(get());
+  },
 }));

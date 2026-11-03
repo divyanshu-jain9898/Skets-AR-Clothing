@@ -25,6 +25,8 @@ export interface SkirtParams {
   sway: number;
   /** Veshti / mundu: vertical border along the wrap edge at this angle (0 = none). */
   wrapEdge: number;
+  /** How many times the fabric pattern repeats around the skirt (kalidar panels use fewer, wider repeats). */
+  bodyRepeat: number;
 }
 
 export const SKIRT_DEFAULTS: SkirtParams = {
@@ -41,6 +43,7 @@ export const SKIRT_DEFAULTS: SkirtParams = {
   midBorder: 0,
   sway: 1,
   wrapEdge: 0,
+  bodyRepeat: 10,
 };
 
 const sec = new Section();
@@ -89,7 +92,7 @@ export class SkirtGarment extends Garment {
     const lay = layoutRows(segs);
     this.rowT = lay.rowT;
     const rows = this.rowT.length;
-    this.grid = new GridMesh(rows, C, true, lay.bands, 10, len / 0.5);
+    this.grid = new GridMesh(rows, C, true, lay.bands, p.bodyRepeat, len / 0.5);
     const mats: Material[] = [ctx.lib.body(fabric), ctx.lib.border(fabric)];
     this.mesh(this.grid.geometry, mats);
     this.sway = new SwaySystem(rows);
