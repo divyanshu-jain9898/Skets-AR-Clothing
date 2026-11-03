@@ -31,5 +31,9 @@ export const BACKGROUND_MAP = new Map(BACKGROUNDS.map((b) => [b.id, b]));
 /** Selected on first launch: the festive office painting. */
 export const DEFAULT_BACKGROUND = 'office';
 
-/** Built-in office photo. Drop your own at public/backgrounds/my-office.jpg (or .png / .webp). */
-export const OFFICE_PHOTO_URLS = ['backgrounds/my-office.jpg', 'backgrounds/my-office.jpeg', 'backgrounds/my-office.png', 'backgrounds/my-office.webp'];
+/**
+ * Office photo shipped with the site: public/backgrounds/my-office.jpg (or
+ * .jpeg / .png / .webp), detected when the app is built. Null = none, so the
+ * built-in painted office is used.
+ */
+export const OFFICE_PHOTO_URL: string | null = import.meta.env.VITE_OFFICE_PHOTO ? `backgrounds/${import.meta.env.VITE_OFFICE_PHOTO}` : null;
