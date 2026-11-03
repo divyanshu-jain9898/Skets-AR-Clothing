@@ -43,5 +43,7 @@ export interface EngineStats {
   fps: number;
   inferMs: number;
   renderMs: number;
+  /** Person segmentation time (only while a backdrop is active). */
+  segMs: number;
   delegate: 'GPU' | 'CPU' | '-';
 }

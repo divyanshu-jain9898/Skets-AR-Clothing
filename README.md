@@ -6,6 +6,10 @@ time: sarees, lehengas, anarkalis, salwar kameez, sherwanis, bandhgalas,
 kurtas, dhotis, veshtis, turbans and jewellery. Nothing to install, and no
 video ever leaves the device.
 
+**Diwali edition:** try outfits on while standing in front of painted Diwali
+scenes, or in your own office turned into a festive canvas painting. The
+camera background is cut out live and replaced behind you and your outfit.
+
 ## Quick start
 
 **Windows, no setup:** double-click **`Start Vastra.bat`**. It serves the
@@ -51,6 +55,8 @@ models (6 MB and 9 MB). The browser only downloads what it needs.
 | Capture and share | Photo capture with a 3 s or 10 s self-timer, plus video clips up to 15 s. A gallery with download and Web Share. Where file sharing isn't available, photos are copied to the clipboard. |
 | Other modes | Photo try-on (upload a picture) and a 3D mannequin with poses (relaxed, arms out, hands on hips, namaste, walk, twirl) and drag-to-turn, for browsing without a camera. |
 | Performance | Fast, Balanced and Sharp presets (model, mesh detail, pixel ratio, anti-aliasing, cloth iterations). Quality steps down automatically if frames get slow. Rendering is synced to `requestVideoFrameCallback`, the hot loops don't allocate, and processing pauses in hidden tabs. |
+| Diwali backgrounds | A **Backgrounds** tab (and the diya button in the top bar) with thumbnail cards. Six painted scenes: Diwali Crackers, Diya Decorations, Illuminated House, Festive Decoration, Diwali Night Scene and Traditional Interior. **My Office – Diwali Edition** turns a photo of your office into a Diwali canvas painting. Also: **Camera** (the original background, i.e. reset), **None** (background removed, plain backdrop) and **Upload** (your own pictures, kept on the device; drag and drop works on desktop). Switching is instant and never restarts the camera. Lights twinkle and live fireworks burst in the open sky; turn it off in the tab. |
+| Background replacement | MediaPipe selfie segmenter (250 KB) on a small copy of each frame, steered by the tracked skeleton (fills gaps along the limbs, removes stray detections) and smoothed over time. Edges, including hair, are refined against the full-resolution camera image on the GPU, with light wrap and a colour match to the scene. It only runs while a background other than Camera is selected, and it never touches body tracking, so garments stay aligned. Works in camera, photo and mannequin modes. |
 | UI | Responsive: a side panel on desktop and a bottom sheet on phones. Keyboard support (left/right arrows flick through outfits), visible focus, reduced-motion support and screen-reader labels. |
 
 ## How it works
@@ -69,6 +75,48 @@ PoseTracker (MediaPipe)  ──►  BodyRig ──► BodyShape ──► Wardro
 - **Body model.** `BodyShape` builds super-ellipse cross-sections (neck, shoulders, chest, bust, waist, hips, then around both legs down to the floor) plus arm and leg paths. Every garment is a parametric surface over these, with its own ease, flare, pleats and hem line.
 - **Layering.** Garments register how far they extend from the body, so drapes collide with the outermost layer and trousers tuck neatly under long tops.
 
+## Diwali backgrounds
+
+### My Office – Diwali Edition
+
+The office card paints a festive canvas painting from a photo of an office:
+
+1. The photo is cropped to the camera's orientation so the decorations stay in view.
+2. Windows are found (large, bright, low-saturation regions in the upper part) and turned into a Diwali night sky with city lights and fireworks. Live fireworks then keep bursting there.
+3. An evening grade makes the room warmer and dimmer, so the festive lights carry it.
+4. Marigold garlands, fairy lights, akash kandil lanterns, rows of diyas and a rangoli are added around the edges, leaving the room's architecture and furniture visible.
+5. An anisotropic Kuwahara filter (oil paint) with brush streaks and canvas weave turns everything into a painting. Then the flames, bulbs and glows are painted on top.
+
+To use **your** office, either:
+
+- in the app: **Backgrounds > Paint my office from a photo** (stored only on that device), or
+- for everyone who opens your deployment: save the photo as `public/backgrounds/my-office.jpg` (`.png` and `.webp` also work) and rebuild. The app paints it on first use.
+
+Until a photo is provided, a built-in modern office is painted and converted the same way. If the detector mistakes a white wall for a window, turn off **Night sky in the windows** under the office card.
+
+### How it works
+
+All backgrounds are painted on the device (no image assets to download). Scenes are drawn with Canvas 2D and run through the same GPU oil-paint filter, in a Web Worker when the browser supports OffscreenCanvas with WebGL 2, otherwise on the main thread. They are painted for the camera's orientation (landscape on laptops, portrait on phones) at up to 1920 px.
+
+```
+camera frame ─┬─► PoseTracker ─► garments (unchanged)
+              └─► PersonSegmenter (256 px copy) + skeleton prior + temporal smoothing
+                        │ person mask
+                        ▼
+   Backdrop shader: mask refined against the camera image ─► person over the painted scene
+                    + light wrap, colour match, twinkle, live fireworks ─► garments on top
+```
+
+Code: `src/engine/backgrounds/` (catalog, painting library, worker, scenes in `paint/scenes/`, office converter in `paint/office.ts`), `src/engine/tracking/PersonSegmenter.ts`, `src/engine/render/Backdrop.ts`, `src/ui/Backgrounds.tsx`. While `npm run dev` is running, `/dev/backgrounds.html?scene=crackers&w=1600&h=900` previews a single scene (`scene=office&photo=<url>` converts a photo).
+
+## Deploy on GitHub Pages
+
+The repository includes `.github/workflows/deploy-pages.yml`.
+
+1. On GitHub, open **Settings > Pages** and set **Source** to **GitHub Actions** (one time).
+2. Push to `main` (or run the workflow from the **Actions** tab). It installs, downloads the models, builds and publishes `dist/`.
+3. The app is then live at `https://<user>.github.io/<repo>/`. Pages is served over HTTPS, so the camera works on phones and tablets too.
+
 ## Project layout
 
 ```
@@ -84,6 +132,7 @@ src/
     materials/             FabricLibrary (PBR fabrics), patterns.ts (procedural Indian textiles)
     render/                ARRenderer, occluders / mannequin / skeleton
     catalog/               pieces, outfits, palette (all data, easy to extend)
+    backgrounds/           background catalog, painting library + worker, Diwali scenes, office converter
   state/                   zustand store and async actions
   ui/                      React components
 scripts/fetch-assets.mjs   copies the wasm runtime and downloads the models (run on npm install)
@@ -136,6 +185,7 @@ Video clips are WebM on Chrome and Firefox and MP4 on Safari.
 
 - Garments are procedural approximations, not tailored CAD patterns. Very loose real clothing (puffer jackets, wide skirts) can peek out at the edges.
 - Occlusion uses body proxies, not hair segmentation, so long hair over the shoulders appears behind the outfit.
+- Background replacement works best against a background that contrasts with you, in even light. Very fast movement can leave a soft edge for a frame.
 - One person at a time.
 
 ## License

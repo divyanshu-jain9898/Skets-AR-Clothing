@@ -4,6 +4,8 @@ import { OUTFITS, OUTFIT_MAP, PIECE_MAP, selectionFromOutfit, slotStateFromRef }
 import type { OutfitSelection, SlotId, SlotState } from '../engine/catalog/types';
 import type { EngineStats, Gender, QualityLevel, SourceMode, TrackingStatus } from '../engine/core/types';
 import type { MannequinPose } from '../engine/tracking/SyntheticPose';
+import type { BackdropState } from '../engine/Engine';
+import { DEFAULT_BACKGROUND } from '../engine/backgrounds/catalog';
 
 export type Occasion = 'All' | 'Wedding' | 'Festive' | 'Everyday' | 'Ceremonial';
 
@@ -30,7 +32,7 @@ export const getEngine = () => engineRef;
 const isMobile = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || window.innerWidth < 760);
 
 const PREFS_KEY = 'vastra-prefs-v1';
-function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean }> {
+function loadPrefs(): Partial<{ quality: QualityLevel; mirror: boolean; skeleton: boolean; occlusion: boolean; autoLight: boolean; fit: 'cover' | 'contain'; gender: Gender; onboarded: boolean; bgId: string; bgAnimate: boolean; officeWindows: boolean }> {
   try {
     return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
   } catch {
@@ -46,6 +48,9 @@ function savePrefs(p: object) {
 }
 
 const prefs = loadPrefs();
+const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+export type PanelTab = 'outfits' | 'customise' | 'backgrounds';
 const initialGender: Gender = prefs.gender ?? 'women';
 const initialOutfit = OUTFITS.find((o) => o.gender === initialGender)!;
 
@@ -69,7 +74,7 @@ export interface AppState {
   fit: 'cover' | 'contain';
   pose: MannequinPose;
   autoRotate: boolean;
-  panel: 'outfits' | 'customise';
+  panel: PanelTab;
   sheetExpanded: boolean;
   onboarded: boolean;
   settingsOpen: boolean;
@@ -82,6 +87,21 @@ export interface AppState {
   recording: boolean;
   recordStart: number;
   hasMultipleCameras: boolean;
+  /** Selected background id (see engine/backgrounds/catalog). */
+  bgId: string;
+  /** A picture background is being painted. */
+  bgPainting: boolean;
+  /** Person cut-out (segmentation) readiness. */
+  bgCutout: BackdropState;
+  bgMsg: string | null;
+  bgThumbs: Record<string, string>;
+  bgUploads: { id: string; name: string }[];
+  /** A photo of the office has been provided (in-app upload). */
+  officeCustom: boolean;
+  /** Turn bright windows in the office photo into a fireworks night sky. */
+  officeWindows: boolean;
+  /** Twinkling lights and live fireworks. */
+  bgAnimate: boolean;
 
   // actions
   setMode: (m: SourceMode) => void;
@@ -100,7 +120,7 @@ export interface AppState {
   setSetting: <K extends 'quality' | 'mirror' | 'skeleton' | 'occlusion' | 'autoLight' | 'fit'>(k: K, v: AppState[K]) => void;
   setPose: (p: MannequinPose) => void;
   setAutoRotate: (v: boolean) => void;
-  setPanel: (p: 'outfits' | 'customise') => void;
+  setPanel: (p: PanelTab) => void;
   setSheetExpanded: (v: boolean) => void;
   setOnboarded: (v: boolean) => void;
   setSettingsOpen: (v: boolean) => void;
@@ -122,8 +142,20 @@ function pushSelection(sel: OutfitSelection) {
   engineRef?.setSelection(sel);
 }
 
-function persist(s: AppState) {
-  savePrefs({ quality: s.quality, mirror: s.mirror, skeleton: s.skeleton, occlusion: s.occlusion, autoLight: s.autoLight, fit: s.fit, gender: s.gender, onboarded: s.onboarded });
+export function persist(s: AppState) {
+  savePrefs({
+    quality: s.quality,
+    mirror: s.mirror,
+    skeleton: s.skeleton,
+    occlusion: s.occlusion,
+    autoLight: s.autoLight,
+    fit: s.fit,
+    gender: s.gender,
+    onboarded: s.onboarded,
+    bgId: s.bgId,
+    bgAnimate: s.bgAnimate,
+    officeWindows: s.officeWindows,
+  });
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -132,7 +164,7 @@ export const useApp = create<AppState>((set, get) => ({
   statusMsg: null,
   progress: 0,
   hint: null,
-  stats: { fps: 0, inferMs: 0, renderMs: 0, delegate: '-' },
+  stats: { fps: 0, inferMs: 0, renderMs: 0, segMs: 0, delegate: '-' },
   gender: initialGender,
   occasion: 'All',
   outfitId: initialOutfit.id,
@@ -159,6 +191,15 @@ export const useApp = create<AppState>((set, get) => ({
   recording: false,
   recordStart: 0,
   hasMultipleCameras: false,
+  bgId: prefs.bgId ?? DEFAULT_BACKGROUND,
+  bgPainting: false,
+  bgCutout: 'idle',
+  bgMsg: null,
+  bgThumbs: {},
+  bgUploads: [],
+  officeCustom: false,
+  officeWindows: prefs.officeWindows ?? true,
+  bgAnimate: prefs.bgAnimate ?? !reducedMotion,
 
   setMode: (mode) => set({ mode }),
   setStatus: (status, msg = null, progress) => set((s) => ({ status, statusMsg: msg, progress: progress ?? s.progress })),

@@ -22,8 +22,11 @@ import {
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import type { BodyRig } from '../body/BodyRig';
 import { clamp, damp, lerp, smoothstep } from '../core/math';
+import { BackdropLayer, type Backdrop } from './Backdrop';
 
 export type BackgroundKind = 'video' | 'image' | 'studio';
+
+const FESTIVE_RIM = new Color('#ffb066');
 
 const STUDIO_VERT = /* glsl */ `
 varying vec2 vUv;
@@ -61,7 +64,9 @@ export class ARRenderer {
   readonly root = new Group();
   readonly garments = new Group();
   readonly overlay = new Group();
-  private bg: Mesh<PlaneGeometry, MeshBasicMaterial>;
+  /** Camera / photo image composited with the chosen backdrop. */
+  private bg: Mesh<PlaneGeometry, ShaderMaterial>;
+  readonly backdropLayer = new BackdropLayer();
   private studio: Mesh<PlaneGeometry, ShaderMaterial>;
   private shadow: Mesh<PlaneGeometry, MeshBasicMaterial>;
   private bgTex: Texture | null = null;
@@ -107,7 +112,7 @@ export class ARRenderer {
     this.scene.add(this.hemi, this.key, this.fill, this.rim, this.key.target, this.fill.target, this.rim.target);
 
     const plane = new PlaneGeometry(1, 1);
-    this.bg = new Mesh(plane, new MeshBasicMaterial({ toneMapped: false, depthWrite: false, depthTest: false }));
+    this.bg = new Mesh(plane, this.backdropLayer.material);
     this.bg.renderOrder = -100;
     this.bg.frustumCulled = false;
     this.studio = new Mesh(
@@ -165,9 +170,9 @@ export class ARRenderer {
     this.kind = kind;
     this.bgTex?.dispose();
     this.bgTex = null;
+    this.backdropLayer.setVideo(null);
+    this.backdropLayer.clearMask();
     if (kind === 'studio') {
-      this.bg.visible = false;
-      this.studio.visible = true;
       this.shadow.visible = true;
     } else if (el) {
       // VideoTexture re-uploads every decoded camera frame; stills use a plain texture
@@ -178,13 +183,59 @@ export class ARRenderer {
       t.generateMipmaps = false;
       t.needsUpdate = true;
       this.bgTex = t;
-      this.bg.material.map = t;
-      this.bg.material.needsUpdate = true;
-      this.bg.visible = true;
-      this.studio.visible = false;
+      this.backdropLayer.setVideo(t);
       this.shadow.visible = false;
     }
+    this.updateLayers();
     if (w && h) this.setFrameSize(w, h);
+  }
+
+  /** Chooses what stands behind the person (camera, plain or a picture). */
+  setBackdrop(b: Backdrop) {
+    this.backdropLayer.setBackdrop(b);
+    this.updateLayers();
+    if (this.kind === 'studio') this.studioLights();
+  }
+
+  get backdrop(): Backdrop {
+    return this.backdropLayer.backdrop;
+  }
+
+  /** Person mask for the current frame (top row first, camera orientation). */
+  setPersonMask(data: Uint8Array, w: number, h: number) {
+    this.backdropLayer.setMask(data, w, h);
+  }
+
+  clearPersonMask() {
+    this.backdropLayer.clearMask();
+  }
+
+  /** Whether the current source + backdrop needs a person mask. */
+  get wantsMask() {
+    return this.kind !== 'studio' && this.backdropLayer.backdrop.kind !== 'camera';
+  }
+
+  /** Advance backdrop animation (twinkling lights, live fireworks). */
+  advanceBackdrop(dt: number) {
+    if (this.backdropLayer.backdrop.kind === 'image') this.backdropLayer.advance(dt);
+  }
+
+  setBackdropAnimation(on: boolean) {
+    this.backdropLayer.setLive(on);
+  }
+
+  private updateLayers() {
+    const b = this.backdropLayer.backdrop;
+    if (this.kind === 'studio') {
+      const pic = b.kind === 'image';
+      this.bg.visible = pic;
+      this.studio.visible = !pic;
+      this.backdropLayer.setMode(3);
+    } else {
+      this.bg.visible = true;
+      this.studio.visible = false;
+      this.backdropLayer.setMode(b.kind === 'camera' ? 0 : b.kind === 'image' ? 1 : 2);
+    }
   }
 
   /** Make sure the camera frame that was just tracked is the one drawn. */
@@ -195,7 +246,6 @@ export class ARRenderer {
   setFrameSize(w: number, h: number) {
     this.frameW = w;
     this.frameH = h;
-    this.bg.scale.set(w, h, 1);
     this.bg.position.set(0, 0, -15000);
     this.studio.scale.set(w * 1.6, h * 1.6, 1);
     this.studio.position.set(0, 0, -15000);
@@ -214,6 +264,7 @@ export class ARRenderer {
 
   setMirror(m: boolean) {
     this.mirror = m;
+    this.backdropLayer.setMirror(m);
     this.root.scale.x = m ? -1 : 1;
     this.root.updateMatrixWorld(true);
   }
@@ -228,6 +279,9 @@ export class ARRenderer {
     this.camera.top = hh;
     this.camera.bottom = -hh;
     this.camera.updateProjectionMatrix();
+    // the composite plane always fills the view; the camera frame sits inside it
+    this.bg.scale.set(hw * 2, hh * 2, 1);
+    this.backdropLayer.setGeometry(hw * 2, hh * 2, frameW, frameH);
   }
 
   /** Converts a scene point to CSS pixel coordinates inside the view. */
@@ -257,9 +311,19 @@ export class ARRenderer {
     this.fill.intensity = 0.6;
     this.fill.position.set(0.8, 0.2, 0.9).multiplyScalar(10000);
     this.rim.intensity = 1.0;
+    this.rim.color.set('#ffe9d2');
     this.rim.position.set(0.6, 0.8, -0.8).multiplyScalar(10000);
     this.scene.environmentIntensity = 0.6;
     this.renderer.toneMappingExposure = 1.0;
+    this.backdropLight();
+  }
+
+  /** A festive backdrop tints the rim light, so outfits pick up the scene's glow. */
+  private backdropLight() {
+    const t = this.backdropLayer.tint;
+    if (!t) return;
+    this.rim.color.setRGB(t.x, t.y, t.z).lerp(FESTIVE_RIM, 0.35);
+    this.rim.intensity = Math.max(this.rim.intensity, 0.85);
   }
 
   /**
@@ -357,7 +421,9 @@ export class ARRenderer {
     this.fill.intensity = 0.45;
     this.fill.position.set(-this.keyDir.x, 0.2, 1).normalize().multiplyScalar(10000);
     this.rim.intensity = 0.35;
+    this.rim.color.set('#ffe9d2');
     this.scene.environmentIntensity = 0.42;
+    this.backdropLight();
   }
 
   render() {
@@ -394,6 +460,7 @@ export class ARRenderer {
 
   dispose() {
     this.bgTex?.dispose();
+    this.backdropLayer.dispose();
     this.renderer.dispose();
   }
 }

@@ -1,5 +1,5 @@
 // Copies the MediaPipe WASM runtime out of node_modules and downloads the
-// pose-landmarker models into /public so the app works fully self-hosted
+// pose-landmarker and person-segmentation models into /public so the app works fully self-hosted
 // (no CDN needed at runtime). Runs automatically after `npm install`.
 import { copyFileSync, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -22,7 +22,11 @@ const MODELS = {
     'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
   'pose_landmarker_full.task':
     'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task',
+  // person cut-out for background replacement (about 250 KB)
+  'selfie_segmenter.tflite':
+    'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite',
 };
+const MIN_SIZE = { 'selfie_segmenter.tflite': 100_000 };
 
 mkdirSync(wasmDst, { recursive: true });
 mkdirSync(modelDst, { recursive: true });
@@ -39,7 +43,7 @@ if (existsSync(wasmSrc)) {
 
 for (const [name, url] of Object.entries(MODELS)) {
   const out = join(modelDst, name);
-  if (existsSync(out) && statSync(out).size > 1_000_000) continue;
+  if (existsSync(out) && statSync(out).size > (MIN_SIZE[name] ?? 1_000_000)) continue;
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -14,9 +14,9 @@ $Root = (Resolve-Path $Root).Path.TrimEnd('\') + '\'
 $mime = @{
   '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.mjs' = 'text/javascript; charset=utf-8'
   '.css' = 'text/css; charset=utf-8'; '.json' = 'application/json'; '.webmanifest' = 'application/manifest+json'
-  '.svg' = 'image/svg+xml'; '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.webp' = 'image/webp'; '.ico' = 'image/x-icon'
+  '.svg' = 'image/svg+xml'; '.png' = 'image/png'; '.jpg' = 'image/jpeg'; '.jpeg' = 'image/jpeg'; '.webp' = 'image/webp'; '.ico' = 'image/x-icon'
   '.woff' = 'font/woff'; '.woff2' = 'font/woff2'; '.wasm' = 'application/wasm'
-  '.task' = 'application/octet-stream'; '.bin' = 'application/octet-stream'; '.txt' = 'text/plain; charset=utf-8'
+  '.task' = 'application/octet-stream'; '.tflite' = 'application/octet-stream'; '.bin' = 'application/octet-stream'; '.txt' = 'text/plain; charset=utf-8'
 }
 
 $listener = New-Object System.Net.HttpListener

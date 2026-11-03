@@ -3,6 +3,7 @@ import { Engine } from '../engine/Engine';
 import { ThumbnailStudio } from '../engine/ThumbnailStudio';
 import { OUTFITS, selectionFromOutfit } from '../engine/catalog/catalog';
 import { getEngine, setEngine, useApp } from '../state/store';
+import { initBackgrounds, onFrameOrientation } from '../state/backgrounds';
 
 /** Hosts the WebGL canvas, owns the engine lifecycle and renders library thumbnails. */
 export function Stage({ children }: { children?: React.ReactNode }) {
@@ -23,6 +24,11 @@ export function Stage({ children }: { children?: React.ReactNode }) {
         useApp.setState({ quality: level });
         useApp.getState().toast(reason);
       },
+      onBackdrop: (state, msg) => {
+        useApp.setState({ bgCutout: state });
+        if (state === 'error' && msg) useApp.getState().toast(msg, 'error');
+      },
+      onOrientation: (portrait) => onFrameOrientation(portrait),
     });
     engine.occlusion = s.occlusion;
     engine.autoLighting = s.autoLight;
@@ -38,6 +44,7 @@ export function Stage({ children }: { children?: React.ReactNode }) {
     engine.setSelection(s.selection);
     engine.showMannequin();
     engine.start();
+    void initBackgrounds();
 
     // Library thumbnails, rendered progressively with the same garment engine.
     let cancelled = false;

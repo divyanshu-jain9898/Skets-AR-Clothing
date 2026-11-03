@@ -1,0 +1,62 @@
+# Builds Vastra AR and publishes it to GitHub Pages.
+#
+# One-time setup: in the repository on GitHub open Settings > Pages and set
+# "Source" to "GitHub Actions". After that every push to `main` deploys the
+# app to https://<owner>.github.io/<repo>/ (HTTPS, so the camera works on
+# phones too). Other branches and pull requests only run the build as a check.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall copies the MediaPipe runtime and downloads the pose and
+      # segmentation models into public/, so the site is fully self-hosted
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Check self-hosted runtime and models
+        run: |
+          ls -la dist/mediapipe/wasm dist/models
+          test -s dist/models/pose_landmarker_lite.task
+          test -s dist/models/selfie_segmenter.tflite
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: dist
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - id: deployment
+        uses: actions/deploy-pages@v4

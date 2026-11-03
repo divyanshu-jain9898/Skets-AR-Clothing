@@ -2,6 +2,7 @@ import { Stage } from './ui/Stage';
 import { Countdown, Hint, LoadingTape, MannequinControls, ShutterBar, StatusChip, TopBar } from './ui/StageOverlays';
 import { Panel } from './ui/Panel';
 import { CaptureViewer, Onboarding, Settings, Toasts } from './ui/Dialogs';
+import { BackdropChip } from './ui/Backgrounds';
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
       <Stage>
         <TopBar />
         <StatusChip />
+        <BackdropChip />
         <LoadingTape />
         <Hint />
         <MannequinControls />
