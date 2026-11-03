@@ -41,6 +41,8 @@ export interface PieceDef {
   controls: StyleControl[];
   /** Hide the fabric editor (e.g. jewellery). */
   noFabric?: boolean;
+  /** Religious attire (dastar, taqiyah): part of the outfit, kept when accessories are off. */
+  attire?: boolean;
 }
 
 export interface PieceRef {
@@ -58,6 +60,8 @@ export interface OutfitDef {
   gender: Gender;
   region: string;
   occasion: 'Festive' | 'Wedding' | 'Everyday' | 'Ceremonial';
+  /** Faith community the outfit is traditionally associated with, when there is one. */
+  community?: string;
   description: string;
   pieces: Partial<Record<SlotId, PieceRef>>;
 }

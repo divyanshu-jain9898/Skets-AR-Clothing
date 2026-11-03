@@ -42,6 +42,22 @@ export function Panel() {
   );
 }
 
+/** Headwear and jewellery on or off for every outfit. */
+function AccessoriesToggle() {
+  const { accessories, setAccessories } = useApp(useShallow((s) => ({ accessories: s.accessories, setAccessories: s.setAccessories })));
+  return (
+    <div className="acc-toggle" role="group" aria-label="Accessories (jewellery and decorative headwear)">
+      <span>Accessories</span>
+      <button className="chip" aria-pressed={accessories} onClick={() => setAccessories(true)}>
+        With
+      </button>
+      <button className="chip" aria-pressed={!accessories} onClick={() => setAccessories(false)} title="No jewellery or decorative headwear (religious headwear stays)">
+        None
+      </button>
+    </div>
+  );
+}
+
 function LibraryHead() {
   const { gender, setGender, occasion, setOccasion } = useApp(useShallow((s) => ({ gender: s.gender, setGender: s.setGender, occasion: s.occasion, setOccasion: s.setOccasion })));
   return (
@@ -61,6 +77,7 @@ function LibraryHead() {
           </button>
         ))}
       </div>
+      <AccessoriesToggle />
     </>
   );
 }
@@ -80,7 +97,7 @@ function Library() {
             <div className="img">{thumbs[o.id] ? <img src={thumbs[o.id]} alt="" /> : <span className="ph">Tailoring…</span>}</div>
             <span className="name">{o.name}</span>
             <span className="meta">
-              {o.region}, {o.occasion.toLowerCase()}
+              {o.community ? `${o.region}, ${o.community}` : `${o.region}, ${o.occasion.toLowerCase()}`}
             </span>
           </button>
         ))}
@@ -89,6 +106,11 @@ function Library() {
       {current && (
         <div className="outfit-note">
           <b>{current.name}</b>
+          {current.community && (
+            <small className="community">
+              {current.region} · {current.community} · {current.occasion}
+            </small>
+          )}
           {current.description}
         </div>
       )}
@@ -135,6 +157,7 @@ function Customiser() {
     <>
       <div className="section">
         <h3>Wearing</h3>
+        <AccessoriesToggle />
         <div className="wearing" role="group" aria-label="Outfit pieces">
           {slots.map((sl) => {
             const st = selection.slots[sl];

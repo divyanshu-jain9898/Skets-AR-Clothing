@@ -8,7 +8,7 @@ import { Section } from '../body/Section';
 import type { FabricSpec } from '../materials/FabricLibrary';
 import { lerp, smoothstep, TAU } from '../core/math';
 
-export type PantsStyle = 'churidar' | 'pyjama' | 'salwar' | 'palazzo' | 'sharara' | 'dhoti' | 'jodhpuri';
+export type PantsStyle = 'churidar' | 'pyjama' | 'salwar' | 'palazzo' | 'sharara' | 'gharara' | 'dhoti' | 'jodhpuri';
 
 export interface PantsParams {
   style: PantsStyle;
@@ -38,6 +38,11 @@ function profile(style: PantsStyle, t: number): { r: number; abs: boolean; folds
       const r = t < 1 ? 0.06 : lerp(0.06, 0.62, Math.pow(smoothstep(1, 2.05, t), 0.8));
       return { r, abs: false, folds: 14, foldAmp: 0.045 * smoothstep(1.05, 2, t) };
     }
+    case 'gharara': {
+      // easy to the knee, gathered under a gota band, then a full flare to the floor
+      const r = t < 1.08 ? lerp(0.1, 0.05, smoothstep(0.6, 1, t)) : lerp(0.05, 0.64, Math.pow(smoothstep(1.08, 2.05, t), 0.75));
+      return { r, abs: false, folds: 16, foldAmp: t < 1.08 ? 0.005 : 0.05 * smoothstep(1.1, 2, t) };
+    }
     case 'dhoti':
       return { r: lerp(0.42, 0.34, t / 2), abs: true, folds: 7, foldAmp: 0.035 };
     default:
@@ -58,7 +63,7 @@ interface LegState {
   limb: 'L' | 'R';
 }
 
-/** Churidar, pyjama, salwar, palazzo, sharara, dhoti, jodhpuri breeches. */
+/** Churidar, pyjama, salwar, palazzo, sharara, gharara, dhoti, jodhpuri breeches. */
 export class PantsGarment extends Garment {
   readonly p: PantsParams;
   private seat: GridMesh;
@@ -84,11 +89,21 @@ export class PantsGarment extends Garment {
     this.mesh(this.seat.geometry, mats);
 
     const lr = Math.max(14, Math.round(26 * d));
-    const lc = Math.max(16, Math.round((p.style === 'sharara' || p.style === 'salwar' ? 36 : 26) * d / 2) * 2);
+    const wide = p.style === 'sharara' || p.style === 'gharara' || p.style === 'salwar';
+    const lc = Math.max(16, Math.round(((wide ? 36 : 26) * d) / 2) * 2);
     const tB = p.hemBorder > 0 ? Math.min(0.25, p.hemBorder / 0.9) : 0;
     for (const limb of ['L', 'R'] as const) {
-      const segs: SegmentSpec[] = [{ t0: 0.06, t1: p.hemT - tB, rows: lr, material: 0, uv: 'body' }];
-      if (tB > 0) segs.push({ t0: p.hemT - tB, t1: p.hemT, rows: 3, material: 1, uv: 'band', uRepeat: p.style === 'sharara' ? 7 : 3 });
+      const segs: SegmentSpec[] = [];
+      if (p.style === 'gharara') {
+        // the gharara's signature band (gota / zari) where the flare starts at the knee
+        const lrA = Math.max(5, Math.round(lr * 0.4));
+        segs.push({ t0: 0.06, t1: 0.93, rows: lrA, material: 0, uv: 'body' });
+        segs.push({ t0: 0.93, t1: 1.07, rows: 3, material: 1, uv: 'band', uRepeat: 3 });
+        segs.push({ t0: 1.07, t1: p.hemT - tB, rows: Math.max(6, lr - lrA), material: 0, uv: 'body' });
+      } else {
+        segs.push({ t0: 0.06, t1: p.hemT - tB, rows: lr, material: 0, uv: 'body' });
+      }
+      if (tB > 0) segs.push({ t0: p.hemT - tB, t1: p.hemT, rows: 3, material: 1, uv: 'band', uRepeat: p.style === 'sharara' || p.style === 'gharara' ? 7 : 3 });
       const lay = layoutRows(segs);
       const grid = new GridMesh(lay.rowT.length, lc, true, lay.bands, 3, p.hemT * 2.2);
       this.mesh(grid.geometry, mats);
@@ -136,7 +151,7 @@ export class PantsGarment extends Garment {
     // legs: wide styles swing a little at the hem
     shape.legPoint(shape.legL, p.hemT, this.legTargets[0]);
     shape.legPoint(shape.legR, p.hemT, this.legTargets[1]);
-    const loose = p.style === 'sharara' || p.style === 'palazzo' || p.style === 'dhoti' || p.style === 'salwar';
+    const loose = p.style === 'sharara' || p.style === 'gharara' || p.style === 'palazzo' || p.style === 'dhoti' || p.style === 'salwar';
     this.sway.update(this.legTargets, this.legFree, rig.yaw, dt, 0.2 * sw, loose ? 0.8 : 0);
     for (let k = 0; k < this.legs.length; k++) {
       const L = this.legs[k];
