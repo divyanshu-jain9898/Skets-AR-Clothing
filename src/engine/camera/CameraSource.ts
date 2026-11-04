@@ -33,12 +33,16 @@ export class CameraSource {
   async start(facing: Facing = this.facing) {
     if (!CameraSource.supported) throw new Error('Camera access is not supported in this browser.');
     this.stop();
-    const portrait = window.innerHeight > window.innerWidth;
-    const video: MediaTrackConstraints = {
+    // Ask in the camera's native landscape terms and forbid cropping. Phones turn
+    // the frames upright themselves; asking for a tall portrait size instead makes
+    // some browsers (notably Safari on iPhone) crop the middle of the sensor, which
+    // looks heavily zoomed in - only the face fits.
+    const video: MediaTrackConstraints & { resizeMode?: string } = {
       facingMode: { ideal: facing },
-      width: { ideal: portrait ? 720 : 1280 },
-      height: { ideal: portrait ? 1280 : 720 },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
       frameRate: { ideal: 30, max: 60 },
+      resizeMode: 'none',
     };
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video });

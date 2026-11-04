@@ -271,7 +271,14 @@ export class ARRenderer {
 
   private updateCamera() {
     const { viewW, viewH, frameW, frameH } = this;
-    const s = this.fit === 'cover' ? Math.max(viewW / frameW, viewH / frameH) : Math.min(viewW / frameW, viewH / frameH);
+    const sCover = Math.max(viewW / frameW, viewH / frameH);
+    const sContain = Math.min(viewW / frameW, viewH / frameH);
+    // "Fill the screen" crops at most 40 % of the camera picture's width and 12 % of
+    // its height, so the whole person - head to feet - stays in view (a landscape
+    // camera on a tall phone, or a short phone view, would otherwise show a zoomed-in
+    // slice). The backdrop fills any space left at the sides.
+    const sCap = Math.min(viewW / (frameW * 0.6), viewH / (frameH * 0.88));
+    const s = this.fit === 'cover' ? Math.max(sContain, Math.min(sCover, sCap)) : sContain;
     const hw = viewW / s / 2;
     const hh = viewH / s / 2;
     this.camera.left = -hw;
