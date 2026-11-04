@@ -1201,7 +1201,7 @@ button {
     right: 12px;
   }
   .shutterbar {
-    bottom: calc(var(--sheet-peek) + 18px + var(--safe-b));
+    bottom: 42px;
     gap: 14px;
   }
   .shutter {
@@ -1213,7 +1213,7 @@ button {
     height: 52px;
   }
   .hint {
-    bottom: calc(var(--sheet-peek) + 108px + var(--safe-b));
+    bottom: 132px;
     font-size: 13px;
   }
   .mq {
@@ -1983,5 +1983,15 @@ button {
   }
   .onboard .btn {
     padding: 10px 14px;
+  }
+}
+
+/* Phones: the camera view ends where the outfit sheet begins (tucked 24 px under its
+   rounded corners), so the whole picture - and the whole person - stays in sight
+   instead of a quarter of it hiding behind the sheet. */
+@media (max-width: 760px) and (min-height: 521px) {
+  .stage {
+    align-self: start;
+    height: calc(100% - var(--sheet-peek) - var(--safe-b) + 24px);
   }
 }

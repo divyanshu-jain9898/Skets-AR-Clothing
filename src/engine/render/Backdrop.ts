@@ -157,7 +157,8 @@ void main() {
   float inF = step(0.0, vuv.x) * step(vuv.x, 1.0) * step(0.0, vuv.y) * step(vuv.y, 1.0);
   vec3 cam = texture2D(tVideo, clamp(vuv, vec2(0.0), vec2(1.0))).rgb;
   if (mode < 0.5) {
-    gl_FragColor = vec4(mix(outside, cam, inF), 1.0);
+    // outside the camera picture: a dim continuation of its edges rather than a hard bar
+    gl_FragColor = vec4(mix(mix(outside, cam, 0.35), cam, inF), 1.0);
   } else {
     vec2 suv = vec2(mirror > 0.5 ? 1.0 - vUv.x : vUv.x, vUv.y);
     vec2 buv = bgRect.xy + suv * bgRect.zw;
